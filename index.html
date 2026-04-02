@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
     <!-- Navigation Bar -->
     <nav class="navbar">
         <a href="#" class="navbar-brand">
@@ -15,9 +16,9 @@
         </a>
         <div class="navbar-menu">
             <div class="dropdown export-dropdown">
-                <div class="navbar-item" id="export-toggle">
+                <button type="button" class="navbar-item" id="export-toggle" aria-expanded="false" aria-controls="export-dropdown">
                     📁 Import / Export
-                </div>
+                </button>
                 <div class="dropdown-content export-dropdown-content" id="export-dropdown">
                     <div class="dropdown-header">Import Data</div>
                     <div class="export-option">
@@ -60,16 +61,12 @@
                 </div>
             </div>
             <div class="dropdown">
-                <div class="navbar-item" id="theme-toggle">
+                <button type="button" class="navbar-item" id="theme-toggle" aria-expanded="false" aria-controls="theme-dropdown">
                     🎨 Theme Selector
-                </div>
+                </button>
                 <div class="dropdown-content" id="theme-dropdown">
                     <div class="dropdown-header">Color Schemes</div>
-                    <div class="dropdown-item" data-theme="light-blue">🔵 Light Blue</div>
-                    <div class="dropdown-item" data-theme="light-green">🟢 Light Green</div>
-                    <div class="dropdown-item" data-theme="dark-blue">🔵 Dark Blue</div>
-                    <div class="dropdown-item" data-theme="dark-green">🟢 Dark Green</div>
-                    <div class="dropdown-item" data-theme="dark-orange">🟠 Dark Orange</div>
+                    <div id="theme-options"></div>
                 </div>
             </div>
         </div>
@@ -94,13 +91,13 @@
             </div>
         </header>
 
-        <main class="main-content">
+        <main class="main-content" id="main-content">
             <section class="add-transaction">
                 <h2>Add Transaction</h2>
                 <form id="transaction-form" class="transaction-form">
                     <div class="form-group">
                         <label for="description">Description</label>
-                        <input type="text" id="description" name="description" required>
+                        <input type="text" id="description" name="description" required maxlength="100">
                         <span class="error-message" id="description-error"></span>
                     </div>
                     
@@ -125,7 +122,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="category">Category</label>
-                            <input type="text" id="category" name="category" required>
+                            <input type="text" id="category" name="category" required maxlength="50">
                             <span class="error-message" id="category-error"></span>
                         </div>
                         
@@ -205,7 +202,7 @@
             <form id="edit-transaction-form" class="transaction-form">
                 <div class="form-group">
                     <label for="edit-description">Description</label>
-                    <input type="text" id="edit-description" name="description" required>
+                    <input type="text" id="edit-description" name="description" required maxlength="100">
                     <span class="error-message" id="edit-description-error"></span>
                 </div>
                 
@@ -230,7 +227,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit-category">Category</label>
-                        <input type="text" id="edit-category" name="category" required>
+                        <input type="text" id="edit-category" name="category" required maxlength="50">
                         <span class="error-message" id="edit-category-error"></span>
                     </div>
                     

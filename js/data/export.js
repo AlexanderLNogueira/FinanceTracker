@@ -1,19 +1,14 @@
 /**
- * Export functionality module
- * Handles exporting transaction data to various formats
+ * Export data serialization
  */
 
-import { getAllTransactions } from './transactions.js';
 import { filterTransactionsByDateRange } from './dateRange.js';
-import { showMessage } from '../utils/helpers.js';
-
-export { filterTransactionsByDateRange };
 
 /**
- * Export transactions to JSON format
- * @param {Array} transactions - Transactions to export
- * @param {string} dateRange - Date range identifier
- * @returns {string} JSON string
+ * Export transactions to JSON string.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {string} dateRange
+ * @returns {string}
  */
 export function exportToJSON(transactions, dateRange = 'all') {
     const exportData = {
@@ -34,10 +29,10 @@ export function exportToJSON(transactions, dateRange = 'all') {
 }
 
 /**
- * Export transactions to CSV format
- * @param {Array} transactions - Transactions to export
- * @param {string} separator - CSV separator (',' or ';')
- * @returns {string} CSV string
+ * Export transactions to CSV string.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {string} separator
+ * @returns {string}
  */
 export function exportToCSV(transactions, separator = ',') {
     if (transactions.length === 0) {
@@ -53,7 +48,7 @@ export function exportToCSV(transactions, separator = ',') {
         const row = [
             transaction.id,
             escapeCSVField(transaction.description, separator),
-            transaction.amount,
+            escapeCSVField(String(transaction.amount), separator),
             escapeCSVField(transaction.category, separator),
             transaction.date,
             transaction.type
@@ -64,58 +59,32 @@ export function exportToCSV(transactions, separator = ',') {
     return csvRows.join('\n');
 }
 
-/**
- * Escape CSV field if it contains special characters
- * @param {string} field - Field value
- * @param {string} separator - CSV separator
- * @returns {string} Escaped field
- */
 function escapeCSVField(field, separator) {
-    const fieldStr = String(field);
-    
-    // Check if field needs escaping
-    if (fieldStr.includes(separator) || fieldStr.includes('"') || fieldStr.includes('\n')) {
-        // Escape quotes by doubling them and wrap in quotes
-        return `"${fieldStr.replace(/"/g, '""')}"`;
-    }
-    
-    return fieldStr;
+  let fieldStr = String(field);
+
+  // Prevent CSV injection by prepending single quote to formula-like values
+  if (fieldStr.startsWith('=') || fieldStr.startsWith('+') || fieldStr.startsWith('-') || fieldStr.startsWith('@')) {
+    fieldStr = "'" + fieldStr;
+  }
+
+  if (fieldStr.includes(separator) || fieldStr.includes('"') || fieldStr.includes('\n')) {
+    return `"${fieldStr.replace(/"/g, '""')}"`;
+  }
+
+  return fieldStr;
 }
 
 /**
- * Download file to user's computer
- * @param {string} content - File content
- * @param {string} filename - File name
- * @param {string} mimeType - MIME type
+ * Generate export filename.
+ * @param {string} format
+ * @param {string} dateRange
+ * @returns {string}
  */
-export function downloadFile(content, filename, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    
-    // Append to body, click, and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up the URL object
-    URL.revokeObjectURL(url);
-}
-
-/**
- * Generate filename with timestamp
- * @param {string} format - File format ('csv' or 'json')
- * @param {string} dateRange - Date range identifier
- * @returns {string} Generated filename
- */
-function generateFilename(format, dateRange) {
-    const now = new Date();
-    const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD
-    const rangeLabel = dateRange === 'all' ? 'all-time' : dateRange;
-    return `finance-tracker-${rangeLabel}-${timestamp}.${format}`;
+export function generateFilename(format, dateRange) {
+  const now = new Date();
+  const timestamp = now.toISOString().split('T')[0];
+  const rangeLabel = dateRange === 'all' ? 'all-time' : dateRange;
+  return `finance-tracker-${rangeLabel}-${timestamp}.${format}`;
 }
 
 /**
@@ -134,97 +103,45 @@ export function getDateRangeLabel(range) {
 }
 
 /**
- * Main export function
- * @param {string} format - Export format ('csv-comma', 'csv-semicolon', 'json')
- * @param {string} dateRange - Date range ('all', '30days', '6months', '1year')
+ * Build export payload by format and date range.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {string} dateRange
+ * @param {string} format
+ * @returns {Object}
  */
-export function exportData(format, dateRange) {
-    try {
-        // Get all transactions
-        const allTransactions = getAllTransactions();
-        
-        // Filter by date range
-        const filteredTransactions = filterTransactionsByDateRange(allTransactions, dateRange);
-        
-        if (filteredTransactions.length === 0) {
-            showMessage('No transactions found for the selected date range', 'error');
-            return;
-        }
+export function buildExportPayload(transactions, dateRange, format) {
+  const filteredTransactions = filterTransactionsByDateRange(transactions, dateRange);
 
-        let content, filename, mimeType;
+  if (filteredTransactions.length === 0) {
+    return { empty: true, count: 0 };
+  }
 
-        // Generate export based on format
-        if (format === 'json') {
-            content = exportToJSON(filteredTransactions, dateRange);
-            filename = generateFilename('json', dateRange);
-            mimeType = 'application/json';
-        } else if (format === 'csv-comma') {
-            content = exportToCSV(filteredTransactions, ',');
-            filename = generateFilename('csv', dateRange);
-            mimeType = 'text/csv';
-        } else if (format === 'csv-semicolon') {
-            content = exportToCSV(filteredTransactions, ';');
-            filename = generateFilename('csv', dateRange);
-            mimeType = 'text/csv';
-        } else {
-            showMessage('Invalid export format', 'error');
-            return;
-        }
+  let content;
+  let filename;
+  let mimeType;
 
-        // Download the file
-        downloadFile(content, filename, mimeType);
-        
-        // Show success message
-        const rangeLabel = getDateRangeLabel(dateRange);
-        showMessage(`Exported ${filteredTransactions.length} transactions (${rangeLabel})`, 'success');
-        
-    } catch (error) {
-        console.error('Export error:', error);
-        showMessage('Failed to export data: ' + error.message, 'error');
-    }
-}
+  if (format === 'json') {
+    content = exportToJSON(filteredTransactions, dateRange);
+    filename = generateFilename('json', dateRange);
+    mimeType = 'application/json';
+  } else if (format === 'csv-comma') {
+    content = exportToCSV(filteredTransactions, ',');
+    filename = generateFilename('csv', dateRange);
+    mimeType = 'text/csv';
+  } else if (format === 'csv-semicolon') {
+    content = exportToCSV(filteredTransactions, ';');
+    filename = generateFilename('csv', dateRange);
+    mimeType = 'text/csv';
+  } else {
+    throw new Error('Invalid export format');
+  }
 
-/**
- * Initialize export functionality
- */
-export function initExport() {
-    const exportToggle = document.getElementById('export-toggle');
-    const exportDropdown = document.getElementById('export-dropdown');
-    const exportBtn = document.getElementById('export-btn');
-    const dateRangeSelect = document.getElementById('export-date-range');
-    const formatSelect = document.getElementById('export-format');
-
-    if (!exportToggle || !exportDropdown) {
-        console.warn('Export elements not found');
-        return;
-    }
-
-    // Toggle dropdown
-    exportToggle.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        exportDropdown.classList.toggle('show');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!exportDropdown.contains(e.target) && !exportToggle.contains(e.target)) {
-            exportDropdown.classList.remove('show');
-        }
-    });
-
-    // Export button click
-    if (exportBtn) {
-        exportBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            const dateRange = dateRangeSelect ? dateRangeSelect.value : 'all';
-            const format = formatSelect ? formatSelect.value : 'json';
-            
-            exportData(format, dateRange);
-            
-            // Close dropdown after export
-            exportDropdown.classList.remove('show');
-        });
-    }
+  return {
+    empty: false,
+    count: filteredTransactions.length,
+    content,
+    filename,
+    mimeType,
+    rangeLabel: getDateRangeLabel(dateRange)
+  };
 }

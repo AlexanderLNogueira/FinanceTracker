@@ -2,9 +2,11 @@
  * Shared date range filtering for transactions
  */
 
+import { parseDateYMD, startOfDay, endOfDay } from '../utils/date.js';
+
 /**
  * Filter transactions by date range
- * @param {Array} transactions - Array of transactions
+ * @param {import('../types.js').Transaction[]} transactions - Array of transactions
  * @param {string} range - Date range ('all', '30days', '6months', '1year')
  * @returns {Array} Filtered transactions
  */
@@ -30,8 +32,12 @@ export function filterTransactionsByDateRange(transactions, range) {
       return transactions;
   }
 
+  const rangeStart = startOfDay(startDate);
+  const rangeEnd = endOfDay(now);
+
   return transactions.filter(transaction => {
-    const transactionDate = new Date(transaction.date);
-    return transactionDate >= startDate && transactionDate <= now;
+    const transactionDate = parseDateYMD(transaction.date);
+    if (!transactionDate) return false;
+    return transactionDate >= rangeStart && transactionDate <= rangeEnd;
   });
 }

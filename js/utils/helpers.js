@@ -3,6 +3,8 @@
  * Shared helper functions for the Finance Tracker
  */
 
+import { parseDateYMD } from './date.js';
+
 /**
  * Format currency with locale settings
  * @param {number} amount - Amount to format
@@ -22,12 +24,13 @@ export function formatCurrency(amount) {
  * @returns {string} Formatted date string
  */
 export function formatDate(dateStr) {
-  const date = new Date(dateStr);
+  const parsed = parseDateYMD(dateStr);
+  if (!parsed) return '';
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
-  }).format(date);
+  }).format(parsed);
 }
 
 /**
@@ -76,7 +79,7 @@ export function getCurrentTheme() {
 export function setTheme(theme) {
   if (!THEMES[theme]) {
     console.warn(`Unknown theme: ${theme}`);
-    return;
+    theme = 'light-blue'; // Default theme
   }
   
   // Update localStorage
@@ -87,6 +90,24 @@ export function setTheme(theme) {
   
   // Update active state in dropdown
   updateThemeDropdown(theme);
+}
+
+/**
+ * Debounce a function by wait ms.
+ * @param {Function} fn
+ * @param {number} wait
+ * @returns {Function}
+ */
+export function debounce(fn, wait) {
+  let timeoutId = null;
+  return (...args) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      fn(...args);
+    }, wait);
+  };
 }
 
 /**
@@ -144,4 +165,25 @@ export function showMessage(message, type = 'success') {
     }, 200);
     toastTimeoutId = null;
   }, 3000);
+}
+
+/**
+ * Download file to user's computer
+ * @param {string} content - File content
+ * @param {string} filename - File name
+ * @param {string} mimeType - MIME type
+ */
+export function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
 }

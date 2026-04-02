@@ -29,6 +29,12 @@
     --active-text: var(--text-color);
     --primary-hover: color-mix(in srgb, var(--primary-color) 85%, #000000);
     --text-on-primary: #0b1b2b;
+    --sort-asc-bg: color-mix(in srgb, var(--income-color) 20%, var(--card-bg));
+    --sort-asc-text: var(--income-color);
+    --sort-asc-border: color-mix(in srgb, var(--income-color) 35%, var(--border-color));
+    --sort-desc-bg: color-mix(in srgb, var(--expense-color) 20%, var(--card-bg));
+    --sort-desc-text: var(--expense-color);
+    --sort-desc-border: color-mix(in srgb, var(--expense-color) 35%, var(--border-color));
 }
 
 /* Light Green Theme */
@@ -60,6 +66,12 @@
     --active-text: var(--text-color);
     --primary-hover: color-mix(in srgb, var(--primary-color) 85%, #000000);
     --text-on-primary: #0b1b2b;
+    --sort-asc-bg: color-mix(in srgb, var(--income-color) 20%, var(--card-bg));
+    --sort-asc-text: var(--income-color);
+    --sort-asc-border: color-mix(in srgb, var(--income-color) 35%, var(--border-color));
+    --sort-desc-bg: color-mix(in srgb, var(--expense-color) 20%, var(--card-bg));
+    --sort-desc-text: var(--expense-color);
+    --sort-desc-border: color-mix(in srgb, var(--expense-color) 35%, var(--border-color));
 }
 
 /* Dark Blue Theme */
@@ -91,6 +103,12 @@
     --active-text: var(--text-color);
     --primary-hover: color-mix(in srgb, var(--primary-color) 85%, #ffffff);
     --text-on-primary: #0b1b2b;
+    --sort-asc-bg: color-mix(in srgb, var(--income-color) 20%, var(--card-bg));
+    --sort-asc-text: var(--income-color);
+    --sort-asc-border: color-mix(in srgb, var(--income-color) 35%, var(--border-color));
+    --sort-desc-bg: color-mix(in srgb, var(--expense-color) 20%, var(--card-bg));
+    --sort-desc-text: var(--expense-color);
+    --sort-desc-border: color-mix(in srgb, var(--expense-color) 35%, var(--border-color));
 }
 
 /* Dark Green Theme */
@@ -122,6 +140,12 @@
     --active-text: var(--text-color);
     --primary-hover: color-mix(in srgb, var(--primary-color) 85%, #ffffff);
     --text-on-primary: #0b1b2b;
+    --sort-asc-bg: color-mix(in srgb, var(--income-color) 20%, var(--card-bg));
+    --sort-asc-text: var(--income-color);
+    --sort-asc-border: color-mix(in srgb, var(--income-color) 35%, var(--border-color));
+    --sort-desc-bg: color-mix(in srgb, var(--expense-color) 20%, var(--card-bg));
+    --sort-desc-text: var(--expense-color);
+    --sort-desc-border: color-mix(in srgb, var(--expense-color) 35%, var(--border-color));
 }
 
 /* Dark Orange Theme */
@@ -153,12 +177,35 @@
     --active-text: var(--text-color);
     --primary-hover: color-mix(in srgb, var(--primary-color) 85%, #ffffff);
     --text-on-primary: #0b1b2b;
+    --sort-asc-bg: color-mix(in srgb, var(--income-color) 20%, var(--card-bg));
+    --sort-asc-text: var(--income-color);
+    --sort-asc-border: color-mix(in srgb, var(--income-color) 35%, var(--border-color));
+    --sort-desc-bg: color-mix(in srgb, var(--expense-color) 20%, var(--card-bg));
+    --sort-desc-text: var(--expense-color);
+    --sort-desc-border: color-mix(in srgb, var(--expense-color) 35%, var(--border-color));
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+.skip-to-content {
+    position: absolute;
+    top: -100%;
+    left: 0;
+    background: var(--primary-color);
+    color: var(--text-on-primary);
+    padding: 0.75rem 1.5rem;
+    z-index: 9999;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 0 0 4px 0;
+}
+
+.skip-to-content:focus {
+    top: 0;
 }
 
 /* Navbar Styles */
@@ -204,6 +251,11 @@
 }
 
 .navbar-item {
+    appearance: none;
+    background: transparent;
+    border: none;
+    font: inherit;
+    text-align: left;
     color: var(--text-color);
     text-decoration: none;
     padding: 0.5rem 1rem;
@@ -215,6 +267,11 @@
 .navbar-item:hover {
     background-color: var(--hover-bg);
     color: var(--hover-text);
+}
+
+.navbar-item:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 /* Dropdown Styles */
@@ -466,24 +523,14 @@ body {
     color: var(--text-on-primary);
 }
 
-.btn-secondary {
-    background-color: var(--surface-muted);
-    color: var(--text-color);
-    border: 1px solid var(--surface-muted-border);
-}
-
-.btn-secondary:hover {
-    background-color: var(--hover-bg);
-    color: var(--hover-text);
-    border-color: var(--active-bg);
-}
-
+.btn-secondary,
 .btn-sort {
     background-color: var(--surface-muted);
     color: var(--text-color);
     border: 1px solid var(--surface-muted-border);
 }
 
+.btn-secondary:hover,
 .btn-sort:hover {
     background-color: var(--hover-bg);
     color: var(--hover-text);
@@ -784,14 +831,6 @@ body {
         grid-template-columns: 1fr;
     }
     
-    .transaction-card {
-        grid-template-columns: 1fr;
-    }
-    
-    .transaction-actions {
-        justify-content: flex-end;
-    }
-    
     .container {
         padding: 1rem;
     }
@@ -897,15 +936,15 @@ body {
 
 /* Sort button states */
 .btn-sort-asc {
-    background-color: #d4edda;
-    color: #155724;
-    border-color: #c3e6cb;
+    background-color: var(--sort-asc-bg);
+    color: var(--sort-asc-text);
+    border-color: var(--sort-asc-border);
 }
 
 .btn-sort-desc {
-    background-color: #f8d7da;
-    color: #721c24;
-    border-color: #f5c6cb;
+    background-color: var(--sort-desc-bg);
+    color: var(--sort-desc-text);
+    border-color: var(--sort-desc-border);
 }
 
 /* Export Dropdown Styles */

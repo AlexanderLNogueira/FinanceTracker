@@ -3,6 +3,12 @@
  * Parses JSON and CSV into raw transaction objects
  */
 
+/**
+ * Parse import content by format into raw transaction objects.
+ * @param {string} text
+ * @param {string} format
+ * @returns {Array<Partial<import('../types.js').Transaction>>}
+ */
 export function parseImportContent(text, format) {
   const content = String(text || '').replace(/^\uFEFF/, '').trim();
   if (!content) return [];
@@ -56,15 +62,24 @@ function parseCSVImport(content, separator) {
     const row = parseCSVLine(line, separator);
     const raw = {
       id: indices.id >= 0 ? row[indices.id] : undefined,
-      description: indices.description >= 0 ? row[indices.description] : '',
-      amount: indices.amount >= 0 ? row[indices.amount] : '',
-      category: indices.category >= 0 ? row[indices.category] : '',
+      description: indices.description >= 0 ? unescapeCSVField(row[indices.description]) : '',
+      amount: indices.amount >= 0 ? unescapeCSVField(row[indices.amount]) : '',
+      category: indices.category >= 0 ? unescapeCSVField(row[indices.category]) : '',
       date: indices.date >= 0 ? row[indices.date] : '',
       type: indices.type >= 0 ? row[indices.type] : ''
     };
 
     return raw;
   });
+}
+
+function unescapeCSVField(field) {
+  const str = String(field);
+  // Remove leading single quote used for CSV injection protection
+  if (str.startsWith("'") && (str[1] === '=' || str[1] === '+' || str[1] === '-' || str[1] === '@')) {
+    return str.slice(1);
+  }
+  return str;
 }
 
 function parseCSVLine(line, separator) {

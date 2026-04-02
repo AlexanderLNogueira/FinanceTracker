@@ -2,9 +2,8 @@
  * Seed helper for generating sample transactions
  */
 
-import { addTransaction } from '../data/transactions.js';
-import { renderTransactions, renderBalance } from '../ui/renderer.js';
-import { formatDateForInput, showMessage } from '../utils/helpers.js';
+import { addTransactionsBatch } from '../app/controller.js';
+import { formatDateForInput } from '../utils/helpers.js';
 
 const DEFAULT_COUNT = 150;
 const DEFAULT_DAYS_BACK = 365;
@@ -65,47 +64,35 @@ function normalizeDaysBack(value) {
   return Math.max(1, Math.floor(value));
 }
 
+/**
+ * Seed sample transactions into the app.
+ * @param {number} [count]
+ * @param {number} [daysBack]
+ * @returns {{added:number, failed:number}}
+ */
 export function seedDataInTransactionsTab(count = DEFAULT_COUNT, daysBack = DEFAULT_DAYS_BACK) {
   const total = normalizeCount(Number(count));
   const span = normalizeDaysBack(Number(daysBack));
 
-  let added = 0;
-  let failed = 0;
-
+  const batch = [];
   for (let i = 0; i < total; i += 1) {
     const type = Math.random() < 0.5 ? 'Income' : 'Expense';
     const category = randomCategory(type);
-    const transaction = {
+    batch.push({
       description: `${category} ${i + 1}`,
       amount: randomAmount(type),
       category,
       date: randomDate(span),
       type
-    };
-
-    try {
-      addTransaction(transaction);
-      added += 1;
-    } catch (error) {
-      failed += 1;
-    }
+    });
   }
 
-  renderTransactions();
-  renderBalance();
-
-  if (added > 0) {
-    const summary = failed > 0
-      ? `Seeded ${added} transactions (${failed} failed).`
-      : `Seeded ${added} transactions.`;
-    showMessage(summary, 'success');
-  } else {
-    showMessage('No transactions were seeded.', 'error');
-  }
-
-  return { added, failed };
+  return addTransactionsBatch(batch, { showToast: true });
 }
 
+/**
+ * Expose seed helper on window for debugging.
+ */
 export function attachSeedHelper() {
   window.seedDataInTransactionsTab = seedDataInTransactionsTab;
 }

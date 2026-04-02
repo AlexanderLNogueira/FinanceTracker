@@ -1,87 +1,89 @@
 /**
- * Simple application state module
- * Owns in-memory state for transactions and filters
+ * Application state
+ * Owns in-memory state and notifies subscribers on changes
  */
 
-import { loadTransactions, saveTransactions } from '../data/storage.js';
+import { loadTransactions } from '../data/storage.js';
+import { normalizeStoredTransactions } from '../data/transactions.js';
 
-const state = {
-  transactions: [],
-  filters: {
-    type: 'all',
-    dateRange: 'all',
-    searchQuery: '',
-    page: 1,
-    pageSize: 25
-  }
+const DEFAULT_FILTERS = {
+  type: 'all',
+  dateRange: 'all',
+  searchQuery: ''
 };
+
+const DEFAULT_SORT = {
+  by: 'date',
+  ascending: false
+};
+
+const DEFAULT_PAGINATION = {
+  page: 1,
+  pageSize: 25
+};
+
+let state = {
+  transactions: [],
+  filters: { ...DEFAULT_FILTERS },
+  sort: { ...DEFAULT_SORT },
+  pagination: { ...DEFAULT_PAGINATION }
+};
+
+const listeners = new Set();
 
 /**
  * Initialize state from storage
  */
 export function initState() {
   const stored = loadTransactions();
-  state.transactions = normalizeStoredTransactions(stored);
-}
-
-/**
- * Get transactions from state
- * @returns {Array} transactions
- */
-export function getTransactions() {
-  return state.transactions;
-}
-
-/**
- * Replace transactions in state and persist
- * @param {Array} transactions - new transactions
- */
-export function setTransactions(transactions) {
-  state.transactions = transactions;
-  saveTransactions(state.transactions);
-}
-
-/**
- * Update filters
- * @param {Object} partial - partial filters
- */
-export function setFilters(partial) {
-  state.filters = {
-    ...state.filters,
-    ...partial
+  state = {
+    ...state,
+    transactions: normalizeStoredTransactions(stored)
   };
 }
 
 /**
- * Get filters
- * @returns {Object} filters
+ * Get current state
+ * @returns {{transactions: import('../types.js').Transaction[], filters: import('../types.js').Filters, sort: import('../types.js').Sort, pagination: import('../types.js').Pagination}} state
  */
-export function getFilters() {
-  return state.filters;
+export function getState() {
+  return state;
 }
 
-function normalizeStoredTransactions(transactions) {
-  if (!Array.isArray(transactions)) return [];
+/**
+ * Update state with partial data or updater function
+ * @param {Partial<{transactions: import('../types.js').Transaction[], filters: import('../types.js').Filters, sort: import('../types.js').Sort, pagination: import('../types.js').Pagination}>|function(Object):Object} updater
+ */
+export function updateState(updater) {
+  const nextPartial = typeof updater === 'function' ? updater(state) : updater;
+  if (!nextPartial || typeof nextPartial !== 'object') {
+    return;
+  }
 
-  return transactions.map((transaction) => {
-    const normalized = { ...transaction };
+  state = {
+    ...state,
+    ...nextPartial
+  };
 
-    if (normalized.id === undefined || normalized.id === null) {
-      normalized.id = String(Date.now()) + Math.random().toString(36).slice(2, 8);
-    } else {
-      normalized.id = String(normalized.id);
+  notify();
+}
+
+/**
+ * Subscribe to > state changes
+ * @param {Function} listener
+ * @returns {Function} unsubscribe
+ */
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function notify() {
+  listeners.forEach((listener) => {
+    try {
+      listener(state);
+    } catch (error) {
+      console.error('State listener failed:', error);
     }
-
-    const type = normalized.type === 'Expense' ? 'Expense' : 'Income';
-    normalized.type = type;
-
-    const amount = Number(normalized.amount);
-    if (Number.isFinite(amount)) {
-      normalized.amount = type === 'Expense' ? -Math.abs(amount) : Math.abs(amount);
-    } else {
-      normalized.amount = 0;
-    }
-
-    return normalized;
   });
 }

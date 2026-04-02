@@ -4,23 +4,65 @@
  */
 
 const STORAGE_KEY = 'finance_tracker_transactions';
+let saveTimeout = null;
+let pendingTransactions = null;
+let pendingOnError = null;
 
 /**
  * Save transactions to localStorage
- * @param {Array} transactions - Array of transaction objects
+ * @param {import('../types.js').Transaction[]} transactions - Array of transaction objects
+ * @param {Function} [onError] - Error callback
  */
-export function saveTransactions(transactions) {
+export function saveTransactions(transactions, onError) {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+
+  pendingTransactions = transactions;
+  pendingOnError = onError;
+
+  saveTimeout = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    } catch (error) {
+      console.error('Failed to save transactions to localStorage:', error);
+      if (typeof onError === 'function') {
+        onError(error);
+      }
+    }
+    saveTimeout = null;
+    pendingTransactions = null;
+    pendingOnError = null;
+  }, 300);
+}
+
+/**
+ * Flush pending debounced saves
+ */
+export function flushPendingSave() {
+  if (!saveTimeout || !pendingTransactions) {
+    return;
+  }
+
+  clearTimeout(saveTimeout);
+  saveTimeout = null;
+
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingTransactions));
   } catch (error) {
     console.error('Failed to save transactions to localStorage:', error);
-    throw new Error('Unable to save data. Please check your browser settings.');
+    if (typeof pendingOnError === 'function') {
+      pendingOnError(error);
+    }
   }
+
+  pendingTransactions = null;
+  pendingOnError = null;
 }
 
 /**
  * Load transactions from localStorage
- * @returns {Array} Array of transaction objects
+ * @returns {import('../types.js').Transaction[]} Array of transaction objects
  */
 export function loadTransactions() {
   try {
@@ -29,17 +71,5 @@ export function loadTransactions() {
   } catch (error) {
     console.error('Failed to load transactions from localStorage:', error);
     return [];
-  }
-}
-
-/**
- * Clear all transactions from localStorage
- */
-export function clearTransactions() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    console.error('Failed to clear transactions from localStorage:', error);
-    throw new Error('Unable to clear data.');
   }
 }

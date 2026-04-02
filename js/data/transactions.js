@@ -1,15 +1,11 @@
 /**
- * Transaction data operations module
- * Handles all business logic for transaction management
+ * Transaction data helpers
  */
 
-import { getTransactions, setTransactions, getFilters, setFilters } from '../state/state.js';
 import { filterTransactionsByDateRange } from './dateRange.js';
+import { parseDateYMD } from '../utils/date.js';
+import { PAGE_SIZES, DESCRIPTION_MAX_LEN, CATEGORY_MAX_LEN } from '../config/constants.js';
 
-/**
- * Generate a unique ID for new transactions
- * @returns {string} Unique transaction ID
- */
 function generateId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -18,9 +14,9 @@ function generateId() {
 }
 
 /**
- * Validate a transaction object
- * @param {Object} transaction - Transaction data
- * @returns {{valid: boolean, errors: string[]}}
+ * Validate transaction object.
+ * @param {import('../types.js').Transaction} transaction
+ * @returns {{valid:boolean, errors:string[]}}
  */
 export function validateTransaction(transaction) {
   const errors = [];
@@ -31,6 +27,8 @@ export function validateTransaction(transaction) {
 
   if (typeof transaction.description !== 'string' || transaction.description.trim() === '') {
     errors.push('Description');
+  } else if (transaction.description.trim().length > DESCRIPTION_MAX_LEN) {
+    errors.push('Description');
   }
 
   if (!Number.isFinite(transaction.amount) || Math.abs(transaction.amount) <= 0) {
@@ -39,13 +37,15 @@ export function validateTransaction(transaction) {
 
   if (typeof transaction.category !== 'string' || transaction.category.trim() === '') {
     errors.push('Category');
+  } else if (transaction.category.trim().length > CATEGORY_MAX_LEN) {
+    errors.push('Category');
   }
 
   if (typeof transaction.date !== 'string' || transaction.date.trim() === '') {
     errors.push('Date');
   } else {
-    const parsed = new Date(transaction.date);
-    if (Number.isNaN(parsed.getTime())) {
+    const parsed = parseDateYMD(transaction.date);
+    if (!parsed) {
       errors.push('Date');
     } else {
       const today = new Date();
@@ -82,7 +82,23 @@ function resolveType(value) {
   return null;
 }
 
-function normalizeTransactionInput(transactionData, options = {}) {
+/**
+ * Normalize transaction input from UI / Import.
+ * @param {Partial<import('../types.js').Transaction>} transactionData
+ * @param {Object} [options]
+ * @returns {Partial<import('../types.js').Transaction>}
+ */
+export function normalizeTransactionInput(transactionData, options = {}) {
+  if (!transactionData || typeof transactionData !== 'object') {
+    return {
+      description: '',
+      amount: NaN,
+      category: '',
+      date: '',
+      type: ''
+    };
+  }
+
   const resolvedType = resolveType(transactionData.type);
   const amountType = resolvedType || 'Income';
   const normalized = {
@@ -101,94 +117,165 @@ function normalizeTransactionInput(transactionData, options = {}) {
 }
 
 /**
- * Add a new transaction
- * @param {Object} transactionData - Transaction data without ID
- * @returns {Object} The created transaction with ID
+ * Normalize transactions from storage.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @returns {import('../types.js').Transaction[]}
  */
-export function addTransaction(transactionData) {
+export function normalizeStoredTransactions(transactions) {
+  if (!Array.isArray(transactions)) return [];
+
+  return transactions.map((transaction) => {
+    const normalized = { ...transaction };
+
+    if (normalized.id === undefined || normalized.id === null) {
+      normalized.id = generateId();
+    } else {
+      normalized.id = String(normalized.id);
+    }
+
+    const type = normalized.type === 'Expense' ? 'Expense' : 'Income';
+    normalized.type = type;
+
+    const amount = Number(normalized.amount);
+    if (Number.isFinite(amount)) {
+      normalized.amount = type === 'Expense' ? -Math.abs(amount) : Math.abs(amount);
+    } else {
+      normalized.amount = 0;
+    }
+
+    return normalized;
+  });
+}
+
+/**
+ * Build new validated transaction with id.
+ * @param {Partial<import('../types.js').Transaction>} transactionData
+ * @returns {import('../types.js').Transaction}
+ */
+export function buildNewTransaction(transactionData) {
   const normalized = normalizeTransactionInput(transactionData);
   const validation = validateTransaction(normalized);
   if (!validation.valid) {
     throw new Error(`Invalid transaction: ${validation.errors.join(', ')}`);
   }
 
-  const newTransaction = {
+  return {
     id: generateId(),
     ...normalized
   };
-
-  const transactions = getTransactions();
-  setTransactions([...transactions, newTransaction]);
-
-  return newTransaction;
 }
 
 /**
- * Remove a transaction by ID
- * @param {string} id - Transaction ID to remove
+ * Update transaction list and return next list + updated item.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {string} id
+ * @param {Partial<import('../types.js').Transaction>} newData
+ * @returns {{nextTransactions: import('../types.js').Transaction[], updatedTransaction: import('../types.js').Transaction}}
  */
-export function removeTransaction(id) {
+export function updateTransactionInList(transactions, id, newData) {
   const normalizedId = String(id);
-  const transactions = getTransactions();
-  const filteredTransactions = transactions.filter(t => String(t.id) !== normalizedId);
-  setTransactions(filteredTransactions);
+  const index = transactions.findIndex(t => String(t.id) === normalizedId);
+
+  if (index === -1) {
+    throw new Error('Transaction not found');
+  }
+
+  const current = transactions[index];
+  const updated = {
+    ...current,
+    ...newData
+  };
+
+  if (typeof updated.description === 'string') {
+    updated.description = updated.description.trim();
+  }
+
+  if (typeof updated.category === 'string') {
+    updated.category = updated.category.trim();
+  }
+
+  if (newData.type !== undefined) {
+    const resolvedType = resolveType(newData.type);
+    updated.type = resolvedType || newData.type;
+  }
+
+  if (newData.amount !== undefined) {
+    updated.amount = normalizeAmount(newData.amount, updated.type === 'Expense' ? 'Expense' : 'Income');
+  } else if (newData.type !== undefined) {
+    updated.amount = normalizeAmount(Math.abs(current.amount), updated.type === 'Expense' ? 'Expense' : 'Income');
+  }
+
+  const validation = validateTransaction(updated);
+  if (!validation.valid) {
+    throw new Error(`Invalid transaction: ${validation.errors.join(', ')}`);
+  }
+
+  const nextTransactions = [...transactions];
+  nextTransactions[index] = updated;
+
+  return { nextTransactions, updatedTransaction: updated };
 }
 
 /**
- * Get all transactions
- * @returns {Array} Array of all transactions
+ * Remove transaction by id.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {string} id
+ * @returns {import('../types.js').Transaction[]}
  */
-export function getAllTransactions() {
-  return getTransactions();
+export function removeTransactionById(transactions, id) {
+  const normalizedId = String(id);
+  return transactions.filter(t => String(t.id) !== normalizedId);
 }
 
 /**
- * Calculate total income
- * @returns {number} Total income amount
+ * Sum income transactions.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @returns {number}
  */
-export function calculateTotalIncome() {
-  const transactions = getAllTransactions();
+export function calculateTotalIncome(transactions) {
   return transactions
     .filter(t => t.type === 'Income')
     .reduce((total, t) => total + Math.abs(t.amount), 0);
 }
 
 /**
- * Calculate total expenses
- * @returns {number} Total expenses amount
+ * Sum expense transactions.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @returns {number}
  */
-export function calculateTotalExpenses() {
-  const transactions = getAllTransactions();
+export function calculateTotalExpenses(transactions) {
   return transactions
     .filter(t => t.type === 'Expense')
     .reduce((total, t) => total + Math.abs(t.amount), 0);
 }
 
 /**
- * Calculate balance (income - expenses)
- * @returns {number} Current balance
+ * Calculate balance (income - expenses).
+ * @param {import('../types.js').Transaction[]} transactions
+ * @returns {number}
  */
-export function calculateBalance() {
-  return calculateTotalIncome() - calculateTotalExpenses();
+export function calculateBalance(transactions) {
+  return calculateTotalIncome(transactions) - calculateTotalExpenses(transactions);
 }
 
 /**
- * Sort transactions by a specific field
- * @param {string} sortBy - Field to sort by
- * @param {boolean} ascending - Sort order
- * @param {Array} transactions - Transactions to sort
- * @returns {Array} Sorted transactions
+ * Sort transactions.
+ * @param {string} sortBy
+ * @param {boolean} ascending
+ * @param {import('../types.js').Transaction[]} transactions
+ * @returns {import('../types.js').Transaction[]}
  */
 export function sortTransactions(sortBy = 'date', ascending = false, transactions = []) {
   const list = [...transactions];
 
   return list.sort((a, b) => {
-    let valueA, valueB;
+    let valueA;
+    let valueB;
 
     switch (sortBy) {
       case 'date':
-        valueA = new Date(a.date);
-        valueB = new Date(b.date);
+        valueA = parseDateYMD(a.date) || new Date(0);
+        valueB = parseDateYMD(b.date) || new Date(0);
         break;
       case 'amount':
         valueA = Math.abs(a.amount);
@@ -207,106 +294,26 @@ export function sortTransactions(sortBy = 'date', ascending = false, transaction
         valueB = b.type;
         break;
       default:
-        valueA = new Date(a.date);
-        valueB = new Date(b.date);
+        valueA = parseDateYMD(a.date) || new Date(0);
+        valueB = parseDateYMD(b.date) || new Date(0);
     }
 
-    if (valueA < valueB) return ascending ? -1 : 1;
-    if (valueA > valueB) return ascending ? 1 : -1;
+    const timeA = valueA instanceof Date ? valueA.getTime() : valueA;
+    const timeB = valueB instanceof Date ? valueB.getTime() : valueB;
+
+    if (timeA < timeB) return ascending ? -1 : 1;
+    if (timeA > timeB) return ascending ? 1 : -1;
     return 0;
   });
 }
 
 /**
- * Update an existing transaction
- * @param {string} id - Transaction ID to update
- * @param {Object} newData - New transaction data (partial updates allowed)
- * @returns {Object} Updated transaction
+ * Apply type/date/search filters.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {import('../types.js').Filters} filters
+ * @returns {import('../types.js').Transaction[]}
  */
-export function updateTransaction(id, newData) {
-  const normalizedId = String(id);
-  const transactions = getTransactions();
-  const transactionIndex = transactions.findIndex(t => String(t.id) === normalizedId);
-
-  if (transactionIndex === -1) {
-    throw new Error('Transaction not found');
-  }
-
-  const currentTransaction = transactions[transactionIndex];
-  const updatedTransaction = {
-    ...currentTransaction,
-    ...newData
-  };
-
-  if (typeof updatedTransaction.description === 'string') {
-    updatedTransaction.description = updatedTransaction.description.trim();
-  }
-
-  if (typeof updatedTransaction.category === 'string') {
-    updatedTransaction.category = updatedTransaction.category.trim();
-  }
-
-  if (newData.type !== undefined) {
-    const resolvedType = resolveType(newData.type);
-    updatedTransaction.type = resolvedType || newData.type;
-  }
-
-  if (newData.amount !== undefined) {
-    updatedTransaction.amount = normalizeAmount(newData.amount, updatedTransaction.type === 'Expense' ? 'Expense' : 'Income');
-  } else if (newData.type !== undefined) {
-    updatedTransaction.amount = normalizeAmount(Math.abs(currentTransaction.amount), updatedTransaction.type === 'Expense' ? 'Expense' : 'Income');
-  }
-
-  const validation = validateTransaction(updatedTransaction);
-  if (!validation.valid) {
-    throw new Error(`Invalid transaction: ${validation.errors.join(', ')}`);
-  }
-
-  const nextTransactions = [...transactions];
-  nextTransactions[transactionIndex] = updatedTransaction;
-  setTransactions(nextTransactions);
-
-  return updatedTransaction;
-}
-
-/**
- * Clear all transactions
- */
-export function clearAllTransactions() {
-  setTransactions([]);
-}
-
-/**
- * Update filters
- * @param {Object} partial - filter updates
- */
-export function updateTransactionFilters(partial) {
-  setFilters(partial);
-}
-
-/**
- * Get filtered transactions based on current filters
- * @returns {Array} Filtered transactions
- */
-export function getFilteredTransactions() {
-  const transactions = getAllTransactions();
-  const filters = getFilters();
-
-  return applyFilters(transactions, filters);
-}
-
-/**
- * Get visible transactions (filtered + sorted)
- * @param {string} sortBy - Field to sort by
- * @param {boolean} ascending - Sort order
- * @returns {Array} Visible transactions
- */
-export function getVisibleTransactions(sortBy = 'date', ascending = false) {
-  const filtered = getFilteredTransactions();
-  return sortTransactions(sortBy, ascending, filtered);
-}
-
-function applyFilters(transactions, filters) {
+export function applyFilters(transactions, filters) {
   let result = [...transactions];
 
   if (filters.type && filters.type !== 'all') {
@@ -330,12 +337,59 @@ function applyFilters(transactions, filters) {
 }
 
 /**
- * Import transactions into state
- * @param {Array} imported - Array of raw transactions
- * @returns {{imported: number, skipped: number, invalid: number}}
+ * Normalize page size.
+ * @param {number} value
+ * @param {number[]} allowed
+ * @returns {number}
  */
-export function importTransactions(imported) {
-  const current = getAllTransactions();
+export function normalizePageSize(value, allowed = PAGE_SIZES) {
+  const size = Number.isFinite(Number(value)) ? Math.floor(Number(value)) : allowed[0];
+  return allowed.includes(size) ? size : allowed[0];
+}
+
+/**
+ * Normalize page number.
+ * @param {number} value
+ * @param {number} totalPages
+ * @returns {number}
+ */
+export function normalizePage(value, totalPages) {
+  const page = Number.isFinite(Number(value)) ? Math.floor(Number(value)) : 1;
+  if (page < 1) return 1;
+  if (page > totalPages) return totalPages;
+  return page;
+}
+
+/**
+ * Paginate list of transactions.
+ * @param {import('../types.js').Transaction[]} transactions
+ * @param {import('../types.js').Pagination} pagination
+ * @returns {{page:number, pageSize:number, totalItems:number, totalPages:number, pageTransactions: import('../types.js').Transaction[]}}
+ */
+export function paginateTransactions(transactions, pagination) {
+  const pageSize = normalizePageSize(pagination.pageSize);
+  const totalItems = transactions.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const page = normalizePage(pagination.page, totalPages);
+  const startIndex = (page - 1) * pageSize;
+  const pageTransactions = transactions.slice(startIndex, startIndex + pageSize);
+
+  return {
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+    pageTransactions
+  };
+}
+
+/**
+ * Import transactions into list and return counts.
+ * @param {import('../types.js').Transaction[]} current
+ * @param {Array<Partial<import('../types.js').Transaction>>} imported
+ * @returns {{nextTransactions: import('../types.js').Transaction[], result:{imported:number, skipped:number, invalid:number}}}
+ */
+export function importTransactionsIntoList(current, imported) {
   const existingIds = new Set(current.map(t => String(t.id)));
   const nextTransactions = [...current];
 
@@ -368,7 +422,8 @@ export function importTransactions(imported) {
     importedCount += 1;
   });
 
-  setTransactions(nextTransactions);
-
-  return { imported: importedCount, skipped: skippedCount, invalid: invalidCount };
+  return {
+    nextTransactions,
+    result: { imported: importedCount, skipped: skippedCount, invalid: invalidCount }
+  };
 }
