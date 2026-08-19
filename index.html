@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <main class="container">
+        <header class="header">
+            <h1>Finance Tracker</h1>
+            <div class="balance-summary">
+                <div class="balance-item">
+                    <span class="label">Total Income:</span>
+                    <span class="value income" id="total-income">$0.00</span>
+                </div>
+                <div class="balance-item">
+                    <span class="label">Total Expenses:</span>
+                    <span class="value expense" id="total-expenses">$0.00</span>
+                </div>
+                <div class="balance-item balance-total">
+                    <span class="label">Balance:</span>
+                    <span class="value" id="balance">$0.00</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="add-transaction">
+            <h2>Add Transaction</h2>
+            <form id="transaction-form" class="transaction-form">
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <input type="text" id="description" name="description" required maxlength="100">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" id="amount" name="amount" step="0.01" min="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <select id="type" name="type" required>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <input type="text" id="category" name="category" required maxlength="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Add Transaction</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-edit-btn" hidden>Cancel Edit</button>
+                    <button type="button" class="btn btn-danger" id="clear-all-btn">Clear All</button>
+                </div>
+            </form>
+            <div id="message-area" class="message" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="transactions-section">
+            <div class="section-header">
+                <h2>Transactions</h2>
+                <div class="toolbar-group">
+                    <label for="filter-type">Type:</label>
+                    <select id="filter-type">
+                        <option value="all">All</option>
+                        <option value="Income">Income</option>
+                        <option value="Expense">Expense</option>
+                    </select>
+                </div>
+            </div>
+            <div class="transactions-list" id="transactions-list">
+            </div>
+        </section>
+
+        <section class="chart-section">
+            <h2>Expenses by Category</h2>
+            <div class="chart-wrapper">
+                <canvas id="expenseChart" aria-label="Expenses by category chart"></canvas>
+                <p class="chart-empty" id="chart-empty">No expense data, yet...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

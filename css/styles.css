@@ -1,0 +1,346 @@
+/* ============ Finance Tracker — simplified ============ */
+
+:root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --text: #2c3e50;
+    --text-muted: #7f8c8d;
+    --border: #dfe4ea;
+    --primary: #4a90e2;
+    --primary-hover: #3a7bc8;
+    --danger: #e74c3c;
+    --danger-hover: #c0392b;
+    --success: #27ae60;
+    --income: #27ae60;
+    --expense: #e74c3c;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+}
+
+/* ---------- Header / Balance ---------- */
+.header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    margin: 0 0 16px;
+    font-size: 1.75rem;
+}
+
+.balance-summary {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.balance-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 12px 28px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.balance-item .label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.balance-item .value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.balance-item .income { color: var(--income); }
+.balance-item .expense { color: var(--expense); }
+
+.balance-total {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.balance-total .label {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.balance-amount.positive { color: var(--income); }
+.balance-amount.negative { color: var(--expense); }
+.balance-total .balance-amount { color: #fff; }
+
+/* ---------- Sections ---------- */
+.add-transaction,
+.transactions-section,
+.chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.add-transaction h2,
+.transactions-section h2,
+.chart-section h2 {
+    margin: 0 0 16px;
+    font-size: 1.25rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.section-header h2 {
+    margin: 0;
+}
+
+/* ---------- Form ---------- */
+.transaction-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-group input,
+.form-group select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #fff;
+    font-size: 1rem;
+    color: var(--text);
+    width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -1px;
+    border-color: var(--primary);
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-secondary {
+    background: #ecf0f1;
+    color: var(--text);
+}
+
+.btn-secondary:hover {
+    background: #dfe4ea;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover);
+}
+
+.btn-edit,
+.btn-delete {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+}
+
+.btn-edit {
+    background: #eaf2fb;
+    color: var(--primary);
+}
+
+.btn-edit:hover {
+    background: #d6e6f8;
+}
+
+.btn-delete {
+    background: #fdeeee;
+    color: var(--danger);
+}
+
+.btn-delete:hover {
+    background: #fadbd8;
+}
+
+/* ---------- Message ---------- */
+.message {
+    margin-top: 16px;
+    min-height: 1.4em;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.message.success {
+    color: var(--success);
+}
+
+.message.error {
+    color: var(--expense);
+}
+
+/* ---------- Transactions table ---------- */
+.transactions-list {
+    overflow-x: auto;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.transactions-table th,
+.transactions-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.transactions-table th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: #f8f9fb;
+}
+
+.transactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+.transactions-table tr:hover td {
+    background: #f8f9fb;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.amount-income { color: var(--income); font-weight: 600; }
+.amount-expense { color: var(--expense); font-weight: 600; }
+.type-income { color: var(--income); }
+.type-expense { color: var(--expense); }
+
+.empty-state {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 32px 0;
+    margin: 0;
+}
+
+/* ---------- Chart ---------- */
+.chart-wrapper {
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.chart-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 32px 0;
+    margin: 0;
+    display: block;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .balance-item {
+        min-width: 100px;
+        padding: 10px 16px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actions {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
