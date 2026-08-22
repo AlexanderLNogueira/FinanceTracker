@@ -204,3 +204,40 @@ export function filterByType(transactions, type) {
   }
   return transactions.filter(t => t.type === type);
 }
+
+/**
+ * Sort transactions by the given sort order.
+ * Returns new array.
+ * @param {Object[]} transactions
+ * @param {string} sortOrder
+ * @returns {Object[]}
+ */
+export function sortTransactions(transactions, sortOrder = 'date-newest') {
+  const sorted = [...transactions];
+
+  const toTime = (dateStr) => parseDateYMD(dateStr)?.getTime() || 0;
+
+  switch (sortOrder) {
+    case 'date-oldest':
+      sorted.sort((a, b) => toTime(a.date) - toTime(b.date));
+      break;
+    case 'amount-high':
+      sorted.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+      break;
+    case 'amount-low':
+      sorted.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
+      break;
+    case 'description-az':
+      sorted.sort((a, b) => String(a.description || '').localeCompare(String(b.description || '')));
+      break;
+    case 'description-za':
+      sorted.sort((a, b) => String(b.description || '').localeCompare(String(a.description || '')));
+      break;
+    case 'date-newest':
+    default:
+      sorted.sort((a, b) => toTime(b.date) - toTime(a.date));
+      break;
+  }
+
+  return sorted;
+}

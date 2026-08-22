@@ -93,9 +93,5 @@ function getChartColors(count) {
     '#8e44ad'
   ];
 
-  const colors = [...palette];
-  while (colors.length < count) {
-    colors.push(palette[colors.length % palette.length]);
-  }
-  return colors.slice(0, count);
+  return Array.from({ length: count }, (_, i) => palette[i % palette.length]);
 }

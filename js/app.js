@@ -7,6 +7,7 @@ import {
   totalExpenses,
   balance,
   filterByType,
+  sortTransactions,
   parseDateYMD
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
@@ -14,6 +15,7 @@ import { renderExpenseChart } from './chart.js';
 // --- State: Plain module variables ---
 let transactions = [];
 let currentFilter = 'all';
+let currentSortOrder = 'date-newest';
 let editingId = null;
 
 // --- DOM references ---
@@ -26,6 +28,7 @@ const dateInput = document.getElementById('date');
 const submitBtn = document.getElementById('submit-btn');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const filterSelect = document.getElementById('filter-type');
+const sortSelect = document.getElementById('sort-order');
 const transactionsList = document.getElementById('transactions-list');
 const messageArea = document.getElementById('message-area');
 
@@ -81,13 +84,12 @@ function renderBalance() {
 
   const amount = balance(transactions);
   balanceTotal.textContent = formatCurrency(amount);
-  balanceTotal.className = `balance-amount${amount > 0 ? ' positive' : amount < 0 ? ' negative' : ''}`;
+  balanceTotal.className = `value balance-amount${amount > 0 ? ' positive' : amount < 0 ? ' negative' : ''}`;
+
 }
 
 function renderList() {
-  const visible = filterByType(transactions, currentFilter)
-    .slice()
-    .sort((a, b) => (parseDateYMD(b.date)?.getTime() || 0) - (parseDateYMD(a.date)?.getTime() || 0));
+  const visible = sortTransactions(filterByType(transactions, currentFilter), currentSortOrder);
 
   transactionsList.innerHTML = '';
 
@@ -279,6 +281,10 @@ function init() {
   cancelEditBtn.addEventListener('click', exitEditMode);
   filterSelect.addEventListener('change', (e) => {
     currentFilter = e.target.value;
+    render();
+  });
+  sortSelect.addEventListener('change', (e) => {
+    currentSortOrder = e.target.value;
     render();
   });
   document.getElementById('clear-all-btn').addEventListener('click', handleClearAll);

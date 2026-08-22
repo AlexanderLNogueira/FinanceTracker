@@ -91,8 +91,6 @@ body {
     color: rgba(255, 255, 255, 0.85);
 }
 
-.balance-amount.positive { color: var(--income); }
-.balance-amount.negative { color: var(--expense); }
 .balance-total .balance-amount { color: #fff; }
 
 /* ---------- Sections ---------- */
@@ -124,6 +122,36 @@ body {
 
 .section-header h2 {
     margin: 0;
+}
+
+/* ---------- Toolbar ---------- */
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.toolbar-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.toolbar-group select {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #fff;
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.toolbar-group select:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -1px;
+    border-color: var(--primary);
 }
 
 /* ---------- Form ---------- */
