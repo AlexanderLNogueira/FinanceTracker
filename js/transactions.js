@@ -95,7 +95,7 @@ function normalizeAmount(amount, type) {
  * @returns {Object}
  */
 export function createTransaction(input) {
-  const type = input.type === 'Expense' ? 'Expense' : 'Income';
+  const type = input.type == null ? '' : String(input.type);
   const transaction = {
     description: String(input.description || '').trim(),
     amount: normalizeAmount(input.amount, type),
@@ -113,6 +113,33 @@ export function createTransaction(input) {
     id: generateId(),
     ...transaction
   };
+}
+
+/**
+ * Normalize and validate transactions loaded from storage.
+ * Invalid records are dropped.
+ * @param {Array} storedTransactions
+ * @returns {Object[]}
+ */
+export function validateAndNormalizeStoredTransactions(storedTransactions) {
+  if (!Array.isArray(storedTransactions)) return [];
+
+  return storedTransactions
+    .filter(t => t && typeof t === 'object')
+    .map(t => {
+      const type = t.type == null ? '' : String(t.type);
+      const amount = Number(t.amount);
+
+      return {
+        id: String(t.id || '').trim(),
+        description: String(t.description || '').trim(),
+        amount: Number.isFinite(amount) ? normalizeAmount(amount, type) : NaN,
+        category: String(t.category || '').trim(),
+        date: String(t.date || '').trim(),
+        type
+      };
+    })
+    .filter(t => t.id && validateTransaction(t).valid);
 }
 
 /**

@@ -8,7 +8,8 @@ import {
   balance,
   filterByType,
   sortTransactions,
-  parseDateYMD
+  parseDateYMD,
+  validateAndNormalizeStoredTransactions
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
 
@@ -264,16 +265,7 @@ function handleListClick(e) {
 
 // --- Init ---
 function init() {
-  transactions = loadTransactions()
-    .filter(t => t && typeof t === 'object')
-    .map(t => ({
-      id: String(t.id),
-      description: String(t.description || ''),
-      amount: Number(t.amount) || 0,
-      category: String(t.category || ''),
-      date: String(t.date || ''),
-      type: t.type === 'Expense' ? 'Expense' : 'Income'
-    }));
+  transactions = validateAndNormalizeStoredTransactions(loadTransactions());
 
   dateInput.value = getTodayDate();
 

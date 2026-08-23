@@ -22,7 +22,10 @@ export function saveTransactions(transactions) {
 export function loadTransactions() {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error('Failed to load transactions from localStorage:', error);
     return [];
