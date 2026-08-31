@@ -1,11 +1,14 @@
 // --- Chart module: Doughnut chart of expenses. ---
 
+import { formatCurrency } from './format.js';
+import { expensesByCategory } from './transactions.js';
+
 let expenseChart = null;
 
 /**
  * Render (or destroy) the expenses-by-category chart.
  * @param {Object[]} transactions
-*/
+ */
 export function renderExpenseChart(transactions = []) {
   const canvas = document.getElementById('expenseChart');
   if (!canvas) return;
@@ -21,16 +24,9 @@ export function renderExpenseChart(transactions = []) {
     return;
   }
 
-  const expenses = transactions.filter(t => t.type === 'Expense');
-
-  const totals = new Map();
-  expenses.forEach((t) => {
-    const category = t.category || 'Uncategorized';
-    totals.set(category, (totals.get(category) || 0) + Math.abs(t.amount));
-  });
-
-  const labels = Array.from(totals.keys());
-  const data = Array.from(totals.values());
+  const byCategory = expensesByCategory(transactions);
+  const labels = byCategory.map((entry) => entry.category);
+  const data = byCategory.map((entry) => entry.amountCents);
 
   if (labels.length === 0) {
     if (expenseChart) {
@@ -73,6 +69,15 @@ export function renderExpenseChart(transactions = []) {
       plugins: {
         legend: {
           position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const total = ctx.dataset.data.reduce((sum, value) => sum + value, 0);
+              const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : '0.0';
+              return ` ${ctx.label}: ${formatCurrency(ctx.parsed)} (${pct}%)`;
+            }
+          }
         }
       }
     }

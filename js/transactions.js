@@ -12,6 +12,37 @@ function generateId() {
 }
 
 /**
+ * Parse an amount in currency units (e.g. "19.99", 5, "-2.50") into
+ * signed integer cents, preserving the input sign.
+ * Returns NaN for missing or non-numeric values.
+ * @param {string|number} value
+ * @returns {number}
+ */
+export function parseAmountToCents(value) {
+  if (value == null) return NaN;
+  const str = typeof value === 'string' ? value.trim() : value;
+  if (str === '') return NaN;
+
+  const n = Number(str);
+  if (!Number.isFinite(n)) return NaN;
+
+  return Math.round((n + Number.EPSILON) * 100);
+}
+
+/**
+ * Normalize a category label: trim, collapse inner whitespace, and title-case words.
+ * @param {string} category
+ * @returns {string}
+ */
+export function normalizeCategory(category) {
+  if (typeof category !== 'string') return '';
+  return category
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+/**
  * Parse YYYY-MM-DD into a local Date. Returns null for invalid input.
  * @param {string} dateStr
  * @returns {Date|null}
@@ -39,8 +70,8 @@ export function parseDateYMD(dateStr) {
 
 /**
  * Validate transaction fields.
- * Amount must be a positive number regardless of sign (transactions
- * store expenses as negatives internally; both signs are valid here).
+ * Amount must be a non-zero integer (amounts are stored in cents);
+ * either sign is accepted (expenses are stored negative).
  * @param {Object} t
  * @returns {{valid: boolean, errors: string[]}}
  */
@@ -55,7 +86,7 @@ export function validateTransaction(t) {
     errors.push('Description');
   }
 
-  if (!Number.isFinite(t.amount) || Math.abs(t.amount) <= 0) {
+  if (!Number.isFinite(t.amount) || Math.abs(t.amount) <= 0 || !Number.isInteger(t.amount)) {
     errors.push('Amount');
   }
 
@@ -98,8 +129,8 @@ export function createTransaction(input) {
   const type = input.type == null ? '' : String(input.type);
   const transaction = {
     description: String(input.description || '').trim(),
-    amount: normalizeAmount(input.amount, type),
-    category: String(input.category || '').trim(),
+    amount: normalizeAmount(parseAmountToCents(input.amount), type),
+    category: normalizeCategory(String(input.category || '')),
     date: String(input.date || '').trim(),
     type
   };
@@ -133,8 +164,8 @@ export function validateAndNormalizeStoredTransactions(storedTransactions) {
       return {
         id: String(t.id || '').trim(),
         description: String(t.description || '').trim(),
-        amount: Number.isFinite(amount) ? normalizeAmount(amount, type) : NaN,
-        category: String(t.category || '').trim(),
+        amount: Number.isFinite(amount) ? normalizeAmount(Math.round(amount), type) : NaN,
+        category: normalizeCategory(String(t.category || '')),
         date: String(t.date || '').trim(),
         type
       };
@@ -161,10 +192,10 @@ export function updateTransactionInList(transactions, id, updates) {
     updated.description = updated.description.trim();
   }
   if (typeof updated.category === 'string') {
-    updated.category = updated.category.trim();
+    updated.category = normalizeCategory(updated.category);
   }
   if (updated.amount !== undefined) {
-    updated.amount = normalizeAmount(updated.amount, updated.type);
+    updated.amount = normalizeAmount(parseAmountToCents(updated.amount), updated.type);
   }
 
   const { valid, errors } = validateTransaction(updated);
@@ -189,7 +220,7 @@ export function removeTransactionById(transactions, id) {
 }
 
 /**
- * Sum of income amounts (always positive).
+ * Sum of income amounts in integer cents (always positive).
  * @param {Object[]} transactions
  * @returns {number}
  */
@@ -200,7 +231,7 @@ export function totalIncome(transactions) {
 }
 
 /**
- * Sum of expense amounts (always positive).
+ * Sum of expense amounts in integer cents (always positive).
  * @param {Object[]} transactions
  * @returns {number}
  */
@@ -211,12 +242,30 @@ export function totalExpenses(transactions) {
 }
 
 /**
- * Balance = income - expenses.
+ * Balance = income - expenses (in integer cents).
  * @param {Object[]} transactions
  * @returns {number}
  */
 export function balance(transactions) {
   return totalIncome(transactions) - totalExpenses(transactions);
+}
+
+/**
+ * Group expense transactions by category.
+ * @param {Object[]} transactions
+ * @returns {Object[]} entries of { category, amountCents }, sorted by amountCents descending
+ */
+export function expensesByCategory(transactions) {
+  const totals = new Map();
+
+  transactions.forEach((t) => {
+    if (t.type !== 'Expense') return;
+    const category = t.category || 'Uncategorized';
+    totals.set(category, (totals.get(category) || 0) + Math.abs(t.amount));
+  });
+
+  return Array.from(totals, ([category, amountCents]) => ({ category, amountCents }))
+    .sort((a, b) => b.amountCents - a.amountCents);
 }
 
 /**

@@ -8,10 +8,10 @@ import {
   balance,
   filterByType,
   sortTransactions,
-  parseDateYMD,
   validateAndNormalizeStoredTransactions
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
+import { formatCurrency, formatDate } from './format.js';
 
 // --- State: Plain module variables ---
 let transactions = [];
@@ -32,17 +32,6 @@ const filterSelect = document.getElementById('filter-type');
 const sortSelect = document.getElementById('sort-order');
 const transactionsList = document.getElementById('transactions-list');
 const messageArea = document.getElementById('message-area');
-
-// --- Formatting ---
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-}
-
-function formatDate(dateStr) {
-  const date = parseDateYMD(dateStr);
-  if (!date) return '';
-  return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
-}
 
 function getTodayDate() {
   const today = new Date();
@@ -72,7 +61,7 @@ function showMessage(text, type = 'success') {
 function render() {
   renderBalance();
   renderList();
-  renderExpenseChart(filterByType(transactions, currentFilter));
+  renderExpenseChart(transactions);
 }
 
 function renderBalance() {
@@ -207,7 +196,7 @@ function handleEdit(id) {
 
   editingId = transaction.id;
   descriptionInput.value = transaction.description;
-  amountInput.value = Math.abs(transaction.amount);
+  amountInput.value = Math.abs(transaction.amount) / 100;
   typeSelect.value = transaction.type;
   categoryInput.value = transaction.category;
   dateInput.value = transaction.date;
@@ -266,6 +255,13 @@ function handleListClick(e) {
 // --- Init ---
 function init() {
   transactions = validateAndNormalizeStoredTransactions(loadTransactions());
+
+  // Persist the one-time storage migration and self-heal invalid records.
+  try {
+    saveTransactions(transactions);
+  } catch (error) {
+    console.error('Failed to persist transactions:', error);
+  }
 
   dateInput.value = getTodayDate();
 
