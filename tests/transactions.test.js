@@ -17,6 +17,7 @@ import {
   filterByType,
   sortTransactions,
 } from '../js/transactions.js';
+import { TRANSACTION_TYPES, TYPE_FILTERS, SORT_ORDERS } from '../js/constants.js';
 
 // ---------- Helpers ----------
 
@@ -27,7 +28,7 @@ function makeTransaction(overrides = {}) {
     amount: 5000, // integer cents
     category: 'Work',
     date: '2024-01-15',
-    type: 'Income',
+    type: TRANSACTION_TYPES.INCOME,
     ...overrides,
   };
 }
@@ -500,7 +501,7 @@ describe('filterByType', () => {
   ];
 
   it('returns all when type is "all"', () => {
-    assert.equal(filterByType(list, 'all').length, 3);
+    assert.equal(filterByType(list, TYPE_FILTERS.ALL).length, 3);
   });
 
   it('returns all when type is empty', () => {
@@ -508,15 +509,20 @@ describe('filterByType', () => {
   });
 
   it('filters Income', () => {
-    const result = filterByType(list, 'Income');
+    const result = filterByType(list, TRANSACTION_TYPES.INCOME);
     assert.equal(result.length, 2);
-    assert.ok(result.every(t => t.type === 'Income'));
+    assert.ok(result.every(t => t.type === TRANSACTION_TYPES.INCOME));
   });
 
   it('filters Expense', () => {
-    const result = filterByType(list, 'Expense');
+    const result = filterByType(list, TRANSACTION_TYPES.EXPENSE);
     assert.equal(result.length, 1);
-    assert.ok(result.every(t => t.type === 'Expense'));
+    assert.ok(result.every(t => t.type === TRANSACTION_TYPES.EXPENSE));
+  });
+
+  it('falls back to all for unknown type values', () => {
+    assert.equal(filterByType(list, 'bad-type').length, 3);
+    assert.equal(filterByType(list, undefined).length, 3);
   });
 });
 
@@ -531,7 +537,7 @@ describe('sortTransactions', () => {
 
   it('does not mutate the original array', () => {
     const original = [...list];
-    sortTransactions(list, 'date-newest');
+    sortTransactions(list, SORT_ORDERS.DATE_NEWEST);
     assert.deepEqual(
       list.map(t => t.id),
       original.map(t => t.id)
@@ -539,42 +545,42 @@ describe('sortTransactions', () => {
   });
 
   it('sorts by date-newest (newest first)', () => {
-    const result = sortTransactions(list, 'date-newest');
+    const result = sortTransactions(list, SORT_ORDERS.DATE_NEWEST);
     assert.equal(result[0].id, '2');
     assert.equal(result[1].id, '3');
     assert.equal(result[2].id, '1');
   });
 
   it('sorts by date-oldest (oldest first)', () => {
-    const result = sortTransactions(list, 'date-oldest');
+    const result = sortTransactions(list, SORT_ORDERS.DATE_OLDEST);
     assert.equal(result[0].id, '1');
     assert.equal(result[1].id, '3');
     assert.equal(result[2].id, '2');
   });
 
   it('sorts by amount-high', () => {
-    const result = sortTransactions(list, 'amount-high');
+    const result = sortTransactions(list, SORT_ORDERS.AMOUNT_HIGH);
     assert.equal(result[0].id, '3'); // 20
     assert.equal(result[1].id, '1'); // 10
     assert.equal(result[2].id, '2'); // 5
   });
 
   it('sorts by amount-low', () => {
-    const result = sortTransactions(list, 'amount-low');
+    const result = sortTransactions(list, SORT_ORDERS.AMOUNT_LOW);
     assert.equal(result[0].id, '2'); // 5
     assert.equal(result[1].id, '1'); // 10
     assert.equal(result[2].id, '3'); // 20
   });
 
   it('sorts by description-az', () => {
-    const result = sortTransactions(list, 'description-az');
+    const result = sortTransactions(list, SORT_ORDERS.DESCRIPTION_AZ);
     assert.equal(result[0].description, 'Apple');
     assert.equal(result[1].description, 'Mango');
     assert.equal(result[2].description, 'Zebra');
   });
 
   it('sorts by description-za', () => {
-    const result = sortTransactions(list, 'description-za');
+    const result = sortTransactions(list, SORT_ORDERS.DESCRIPTION_ZA);
     assert.equal(result[0].description, 'Zebra');
     assert.equal(result[1].description, 'Mango');
     assert.equal(result[2].description, 'Apple');

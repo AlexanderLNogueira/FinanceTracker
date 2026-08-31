@@ -12,11 +12,16 @@ import {
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
 import { formatCurrency, formatDate } from './format.js';
+import {
+  TRANSACTION_TYPES,
+  DEFAULT_FILTER,
+  DEFAULT_SORT_ORDER
+} from './constants.js';
 
 // --- State: Plain module variables ---
 let transactions = [];
-let currentFilter = 'all';
-let currentSortOrder = 'date-newest';
+let currentFilter = DEFAULT_FILTER;
+let currentSortOrder = DEFAULT_SORT_ORDER;
 let editingId = null;
 
 // --- DOM references ---
@@ -119,11 +124,11 @@ function renderList() {
 
     const typeTd = document.createElement('td');
     typeTd.textContent = t.type;
-    typeTd.className = t.type === 'Income' ? 'type-income' : 'type-expense';
+    typeTd.className = t.type === TRANSACTION_TYPES.INCOME ? 'type-income' : 'type-expense';
 
     const amountTd = document.createElement('td');
     amountTd.textContent = formatCurrency(Math.abs(t.amount));
-    amountTd.className = t.type === 'Income' ? 'amount-income' : 'amount-expense';
+    amountTd.className = t.type === TRANSACTION_TYPES.INCOME ? 'amount-income' : 'amount-expense';
 
     const actionsTd = document.createElement('td');
     actionsTd.className = 'actions';

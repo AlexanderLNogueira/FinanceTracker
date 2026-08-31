@@ -3,6 +3,17 @@
  * Validation, create/update/delete, totals, and filtering.
  */
 
+import {
+  TRANSACTION_TYPES,
+  TYPE_FILTERS,
+  SORT_ORDERS,
+  DEFAULT_CATEGORY,
+  DEFAULT_FILTER,
+  DEFAULT_SORT_ORDER,
+  VALID_TYPE_FILTERS,
+  VALID_SORT_ORDERS,
+} from './constants.js';
+
 const DESCRIPTION_MAX_LEN = 100;
 const CATEGORY_MAX_LEN = 50;
 const MIN_DATE = new Date(2000, 0, 1); // Earliest allowed date
@@ -101,7 +112,7 @@ export function validateTransaction(t) {
     errors.push('Date');
   }
 
-  if (t.type !== 'Income' && t.type !== 'Expense') {
+  if (t.type !== TRANSACTION_TYPES.INCOME && t.type !== TRANSACTION_TYPES.EXPENSE) {
     errors.push('Type');
   }
 
@@ -117,7 +128,7 @@ export function validateTransaction(t) {
  */
 function normalizeAmount(amount, type) {
   const abs = Math.abs(Number(amount));
-  return type === 'Expense' ? -abs : abs;
+  return type === TRANSACTION_TYPES.EXPENSE ? -abs : abs;
 }
 
 /**
@@ -226,7 +237,7 @@ export function removeTransactionById(transactions, id) {
  */
 export function totalIncome(transactions) {
   return transactions
-    .filter(t => t.type === 'Income')
+    .filter(t => t.type === TRANSACTION_TYPES.INCOME)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 }
 
@@ -237,7 +248,7 @@ export function totalIncome(transactions) {
  */
 export function totalExpenses(transactions) {
   return transactions
-    .filter(t => t.type === 'Expense')
+    .filter(t => t.type === TRANSACTION_TYPES.EXPENSE)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 }
 
@@ -259,8 +270,8 @@ export function expensesByCategory(transactions) {
   const totals = new Map();
 
   transactions.forEach((t) => {
-    if (t.type !== 'Expense') return;
-    const category = t.category || 'Uncategorized';
+    if (t.type !== TRANSACTION_TYPES.EXPENSE) return;
+    const category = t.category || DEFAULT_CATEGORY;
     totals.set(category, (totals.get(category) || 0) + Math.abs(t.amount));
   });
 
@@ -269,13 +280,17 @@ export function expensesByCategory(transactions) {
 }
 
 /**
- * Filter transactions by type ('all', 'Income', 'Expense').
+ * Filter transactions by type ('all' includes every transaction).
+ * Unknown values fall back to the default filter.
  * @param {Object[]} transactions
  * @param {string} type
  * @returns {Object[]}
  */
 export function filterByType(transactions, type) {
-  if (type === 'all' || type === '') {
+  if (!VALID_TYPE_FILTERS.includes(type)) {
+    return filterByType(transactions, DEFAULT_FILTER);
+  }
+  if (type === TYPE_FILTERS.ALL) {
     return transactions;
   }
   return transactions.filter(t => t.type === type);
@@ -283,33 +298,37 @@ export function filterByType(transactions, type) {
 
 /**
  * Sort transactions by the given sort order.
- * Returns new array.
+ * Unknown values fall back to the default sort order.
+ * Returns a new array.
  * @param {Object[]} transactions
  * @param {string} sortOrder
  * @returns {Object[]}
  */
-export function sortTransactions(transactions, sortOrder = 'date-newest') {
+export function sortTransactions(transactions, sortOrder = DEFAULT_SORT_ORDER) {
+  if (!VALID_SORT_ORDERS.includes(sortOrder)) {
+    sortOrder = DEFAULT_SORT_ORDER;
+  }
   const sorted = [...transactions];
 
   const toTime = (dateStr) => parseDateYMD(dateStr)?.getTime() || 0;
 
   switch (sortOrder) {
-    case 'date-oldest':
+    case SORT_ORDERS.DATE_OLDEST:
       sorted.sort((a, b) => toTime(a.date) - toTime(b.date));
       break;
-    case 'amount-high':
+    case SORT_ORDERS.AMOUNT_HIGH:
       sorted.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
       break;
-    case 'amount-low':
+    case SORT_ORDERS.AMOUNT_LOW:
       sorted.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
       break;
-    case 'description-az':
+    case SORT_ORDERS.DESCRIPTION_AZ:
       sorted.sort((a, b) => String(a.description || '').localeCompare(String(b.description || '')));
       break;
-    case 'description-za':
+    case SORT_ORDERS.DESCRIPTION_ZA:
       sorted.sort((a, b) => String(b.description || '').localeCompare(String(a.description || '')));
       break;
-    case 'date-newest':
+    case SORT_ORDERS.DATE_NEWEST:
     default:
       sorted.sort((a, b) => toTime(b.date) - toTime(a.date));
       break;

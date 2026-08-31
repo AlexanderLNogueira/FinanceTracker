@@ -2,6 +2,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { saveTransactions, loadTransactions } from '../js/storage.js';
+import { TRANSACTION_TYPES } from '../js/constants.js';
 
 // --- In-memory localStorage ---
 
@@ -40,7 +41,7 @@ function makeTransaction(overrides = {}) {
     amount: 5000, // integer cents
     category: 'Work',
     date: '2024-01-15',
-    type: 'Income',
+    type: TRANSACTION_TYPES.INCOME,
     ...overrides,
   };
 }
