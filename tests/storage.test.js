@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { saveTransactions, loadTransactions } from '../js/storage.js';
@@ -28,6 +28,15 @@ function createLocalStorageMock() {
 
 beforeEach(() => {
   globalThis.localStorage = createLocalStorageMock();
+});
+
+// Expected console.error calls from error-path tests.
+beforeEach(() => {
+  mock.method(console, 'error', () => {});
+});
+
+afterEach(() => {
+  mock.restoreAll();
 });
 
 // --- Helpers ---
