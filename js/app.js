@@ -12,6 +12,7 @@ import {
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
 import { formatCurrency, formatDate } from './format.js';
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, VALID_CURRENCIES, VALID_LOCALES } from './settings.js';
 import {
   TRANSACTION_TYPES,
   DEFAULT_FILTER,
@@ -22,6 +23,7 @@ import {
 let transactions = [];
 let currentFilter = DEFAULT_FILTER;
 let currentSortOrder = DEFAULT_SORT_ORDER;
+let settings = { ...DEFAULT_SETTINGS };
 let editingId = null;
 
 // --- DOM references ---
@@ -37,6 +39,8 @@ const filterSelect = document.getElementById('filter-type');
 const sortSelect = document.getElementById('sort-order');
 const transactionsList = document.getElementById('transactions-list');
 const messageArea = document.getElementById('message-area');
+const currencySelect = document.getElementById('currency-select');
+const localeSelect = document.getElementById('locale-select');
 
 function getTodayDate() {
   const today = new Date();
@@ -66,7 +70,7 @@ function showMessage(text, type = 'success') {
 function render() {
   renderBalance();
   renderList();
-  renderExpenseChart(transactions);
+  renderExpenseChart(transactions, settings);
 }
 
 function renderBalance() {
@@ -74,11 +78,11 @@ function renderBalance() {
   const expensesTotal = document.getElementById('total-expenses');
   const balanceTotal = document.getElementById('balance');
 
-  incomeTotal.textContent = formatCurrency(totalIncome(transactions));
-  expensesTotal.textContent = formatCurrency(totalExpenses(transactions));
+  incomeTotal.textContent = formatCurrency(totalIncome(transactions), settings);
+  expensesTotal.textContent = formatCurrency(totalExpenses(transactions), settings);
 
   const amount = balance(transactions);
-  balanceTotal.textContent = formatCurrency(amount);
+  balanceTotal.textContent = formatCurrency(amount, settings);
   balanceTotal.className = `value balance-amount${amount > 0 ? ' positive' : amount < 0 ? ' negative' : ''}`;
 
 }
@@ -114,7 +118,7 @@ function renderList() {
     const tr = document.createElement('tr');
 
     const dateTd = document.createElement('td');
-    dateTd.textContent = formatDate(t.date);
+    dateTd.textContent = formatDate(t.date, settings);
 
     const descTd = document.createElement('td');
     descTd.textContent = t.description;
@@ -127,7 +131,7 @@ function renderList() {
     typeTd.className = t.type === TRANSACTION_TYPES.INCOME ? 'type-income' : 'type-expense';
 
     const amountTd = document.createElement('td');
-    amountTd.textContent = formatCurrency(Math.abs(t.amount));
+    amountTd.textContent = formatCurrency(Math.abs(t.amount), settings);
     amountTd.className = t.type === TRANSACTION_TYPES.INCOME ? 'amount-income' : 'amount-expense';
 
     const actionsTd = document.createElement('td');
@@ -257,6 +261,38 @@ function handleListClick(e) {
   }
 }
 
+// --- Settings UI ---
+function populateSettingsSelects() {
+  currencySelect.replaceChildren(
+    ...VALID_CURRENCIES.map((c) => {
+      const option = document.createElement('option');
+      option.value = c;
+      option.textContent = c;
+      return option;
+    })
+  );
+  currencySelect.value = settings.currency;
+
+  localeSelect.replaceChildren(
+    ...VALID_LOCALES.map((l) => {
+      const option = document.createElement('option');
+      option.value = l;
+      option.textContent = l;
+      return option;
+    })
+  );
+  localeSelect.value = settings.locale;
+}
+
+function onSettingsChange() {
+  settings = {
+    currency: currencySelect.value,
+    locale: localeSelect.value,
+  };
+  saveSettings(settings);
+  render();
+}
+
 // --- Init ---
 function init() {
   transactions = validateAndNormalizeStoredTransactions(loadTransactions());
@@ -269,6 +305,12 @@ function init() {
   }
 
   dateInput.value = getTodayDate();
+
+  // Settings
+  settings = loadSettings();
+  populateSettingsSelects();
+  currencySelect.addEventListener('change', onSettingsChange);
+  localeSelect.addEventListener('change', onSettingsChange);
 
   form.addEventListener('submit', handleSubmit);
   cancelEditBtn.addEventListener('click', exitEditMode);

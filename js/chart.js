@@ -2,14 +2,16 @@
 
 import { formatCurrency } from './format.js';
 import { expensesByCategory } from './transactions.js';
+import { DEFAULT_SETTINGS } from './settings.js';
 
 let expenseChart = null;
 
 /**
  * Render (or destroy) the expenses-by-category chart.
  * @param {Object[]} transactions
+ * @param {{currency: string, locale: string}} [settings]
  */
-export function renderExpenseChart(transactions = []) {
+export function renderExpenseChart(transactions = [], settings = DEFAULT_SETTINGS) {
   const canvas = document.getElementById('expenseChart');
   if (!canvas) return;
 
@@ -75,7 +77,7 @@ export function renderExpenseChart(transactions = []) {
             label: (ctx) => {
               const total = ctx.dataset.data.reduce((sum, value) => sum + value, 0);
               const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : '0.0';
-              return ` ${ctx.label}: ${formatCurrency(ctx.parsed)} (${pct}%)`;
+              return ` ${ctx.label}: ${formatCurrency(ctx.parsed, settings)} (${pct}%)`;
             }
           }
         }
