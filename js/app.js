@@ -50,6 +50,13 @@ function getTodayDate() {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Native date input in sync with validateTransaction
+ */
+function refreshDateConstraints() {
+  dateInput.max = getTodayDate();
+}
+
 // --- Status message ---
 let messageTimeout = null;
 
@@ -83,8 +90,7 @@ function renderBalance() {
 
   const amount = balance(transactions);
   balanceTotal.textContent = formatCurrency(amount, settings);
-  balanceTotal.className = `value balance-amount${amount > 0 ? ' positive' : amount < 0 ? ' negative' : ''}`;
-
+  balanceTotal.className = 'value balance-amount';
 }
 
 function renderList() {
@@ -305,6 +311,7 @@ function init() {
   }
 
   dateInput.value = getTodayDate();
+  refreshDateConstraints();
 
   // Settings
   settings = loadSettings();
@@ -324,6 +331,12 @@ function init() {
   });
   document.getElementById('clear-all-btn').addEventListener('click', handleClearAll);
   transactionsList.addEventListener('click', handleListClick);
+
+  // Refresh the native date-max constraint on long-lived tabs.
+  window.addEventListener('focus', refreshDateConstraints);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshDateConstraints();
+  });
 
   render();
 }
