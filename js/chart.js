@@ -9,7 +9,7 @@ let expenseChart = null;
 /**
  * Render (or destroy) the expenses-by-category chart.
  * @param {Object[]} transactions
- * @param {{currency: string, locale: string}} [settings]
+ * @param {{currency: string, locale: string, theme?: string}} [settings]
  */
 export function renderExpenseChart(transactions = [], settings = DEFAULT_SETTINGS) {
   const canvas = document.getElementById('expenseChart');
@@ -61,7 +61,7 @@ export function renderExpenseChart(transactions = [], settings = DEFAULT_SETTING
         {
           data,
           backgroundColor: getChartColors(labels.length),
-          borderColor: '#ffffff',
+          borderColor: readThemeColor('--chart-border', '#ffffff'),
           borderWidth: 2
         }
       ]
@@ -70,7 +70,10 @@ export function renderExpenseChart(transactions = [], settings = DEFAULT_SETTING
       responsive: true,
       plugins: {
         legend: {
-          position: 'bottom'
+          position: 'bottom',
+          labels: {
+            color: readThemeColor('--chart-text', '#666666')
+          }
         },
         tooltip: {
           callbacks: {
@@ -84,6 +87,18 @@ export function renderExpenseChart(transactions = [], settings = DEFAULT_SETTING
       }
     }
   });
+}
+
+/**
+ * Read CSS custom property from document root, chart follows active theme.
+ * Falls back when property is missing or unreadable.
+ * @param {string} variable
+ * @param {string} fallback
+ * @returns {string}
+ */
+function readThemeColor(variable, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+  return value || fallback;
 }
 
 function getChartColors(count) {

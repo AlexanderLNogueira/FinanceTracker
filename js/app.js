@@ -12,7 +12,8 @@ import {
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
 import { formatCurrency, formatDate } from './format.js';
-import { loadSettings, saveSettings, DEFAULT_SETTINGS, VALID_CURRENCIES, VALID_LOCALES } from './settings.js';
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, VALID_CURRENCIES, VALID_LOCALES, VALID_THEMES } from './settings.js';
+import { applyTheme, THEME_LABELS } from './theme.js';
 import {
   TRANSACTION_TYPES,
   DEFAULT_FILTER,
@@ -41,6 +42,7 @@ const transactionsList = document.getElementById('transactions-list');
 const messageArea = document.getElementById('message-area');
 const currencySelect = document.getElementById('currency-select');
 const localeSelect = document.getElementById('locale-select');
+const themeSelect = document.getElementById('theme-select');
 
 function getTodayDate() {
   const today = new Date();
@@ -288,13 +290,26 @@ function populateSettingsSelects() {
     })
   );
   localeSelect.value = settings.locale;
+
+  themeSelect.replaceChildren(
+    ...VALID_THEMES.map((theme) => {
+      const option = document.createElement('option');
+      option.value = theme;
+      option.textContent = THEME_LABELS[theme] || theme;
+      return option;
+    })
+  );
+  themeSelect.value = settings.theme;
 }
 
 function onSettingsChange() {
   settings = {
+    ...settings,
     currency: currencySelect.value,
     locale: localeSelect.value,
+    theme: themeSelect.value,
   };
+  applyTheme(settings.theme);
   saveSettings(settings);
   render();
 }
@@ -318,6 +333,10 @@ function init() {
   populateSettingsSelects();
   currencySelect.addEventListener('change', onSettingsChange);
   localeSelect.addEventListener('change', onSettingsChange);
+  themeSelect.addEventListener('change', onSettingsChange);
+
+  // Apply the stored theme after settings are loaded.
+  applyTheme(settings.theme);
 
   form.addEventListener('submit', handleSubmit);
   cancelEditBtn.addEventListener('click', exitEditMode);

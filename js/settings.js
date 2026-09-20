@@ -6,11 +6,13 @@ const SETTINGS_KEY = 'settings';
 export const DEFAULT_SETTINGS = Object.freeze({
   currency: 'USD',
   locale: 'en-US',
+  theme: 'light',
 });
 
 // Currency and locale options for the settings UI.
 export const VALID_CURRENCIES = Object.freeze(['USD', 'EUR', 'GBP', 'BRL', 'JPY', 'CAD', 'AUD', 'CHF']);
 export const VALID_LOCALES = Object.freeze(['en-US', 'pt-BR', 'de-DE', 'fr-FR', 'es-ES', 'it-IT', 'ja-JP', 'en-GB']);
+export const VALID_THEMES = Object.freeze(['light', 'dark']);
 
 function safeParse(json) {
   try {
@@ -26,7 +28,7 @@ function isValidValue(value, validValues) {
 
 /**
  * Load user settings, merging per-field defaults over whatever is persisted. Corrupt or partial falls back.
- * @returns {{currency: string, locale: string}}
+ * @returns {{currency: string, locale: string, theme: string}}
  */
 export function loadSettings() {
   const stored = safeParse(localStorage.getItem(SETTINGS_KEY));
@@ -35,16 +37,18 @@ export function loadSettings() {
   return {
     currency: isValidValue(stored.currency, VALID_CURRENCIES) ? stored.currency : DEFAULT_SETTINGS.currency,
     locale: isValidValue(stored.locale, VALID_LOCALES) ? stored.locale : DEFAULT_SETTINGS.locale,
+    theme: isValidValue(stored.theme, VALID_THEMES) ? stored.theme : DEFAULT_SETTINGS.theme,
   };
 }
 
 /**
  * Persist the user settings.
- * @param {{currency: string, locale: string}} settings
+ * @param {{currency: string, locale: string, theme: string}} settings
  */
 export function saveSettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify({
     currency: settings.currency,
     locale: settings.locale,
+    theme: settings.theme,
   }));
 }

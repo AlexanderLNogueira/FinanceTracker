@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS } from './settings.js';
  * Format an amount in integer cents as a localized currency string.
  * Cents-to-dollars division, callers always pass cents.
  * @param {number} amountCents
- * @param {{currency: string, locale: string}} [settings]
+ * @param {{currency: string, locale: string, theme?: string}} [settings]
  * @returns {string}
  */
 export function formatCurrency(amountCents, settings = DEFAULT_SETTINGS) {

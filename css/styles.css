@@ -1,20 +1,71 @@
 /* ============ Finance Tracker ============ */
 
 :root {
+    /* ---------- Light theme (default) ---------- */
+
+    color-scheme: light;
+
     --bg: #f4f6f9;
     --surface: #ffffff;
+    --field-bg: #ffffff;
+    --row-hover: #f8f9fb;
     --text: #2c3e50;
     --text-muted: #7f8c8d;
+    --heading: #2c3e50;
     --border: #dfe4ea;
     --primary: #4a90e2;
     --primary-hover: #3a7bc8;
+    --on-primary: #ffffff;
+    --on-primary-muted: rgba(255, 255, 255, 0.85);
     --danger: #e74c3c;
     --danger-hover: #c0392b;
+    --on-danger: #ffffff;
     --success: #27ae60;
     --income: #27ae60;
     --expense: #e74c3c;
+    --btn-secondary-bg: #ecf0f1;
+    --btn-secondary-hover: #dfe4ea;
+    --btn-edit-bg: #eaf2fb;
+    --btn-edit-hover: #d6e6f8;
+    --btn-delete-bg: #fdeeee;
+    --btn-delete-hover: #fadbd8;
+    --chart-border: #ffffff;
+    --chart-text: #666666;
     --radius: 8px;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Dark theme ---------- */
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --bg: #1e3533;
+    --surface: #24413e;
+    --field-bg: #2b4b47;
+    --row-hover: #2b4b47;
+    --text: #f4f5f5;
+    --text-muted: #9db8b3;
+    --heading: #d1d93b;
+    --border: #35564f;
+    --primary: #d1d93b;
+    --primary-hover: #c3cb32;
+    --on-primary: #1e3533;
+    --on-primary-muted: rgba(30, 53, 51, 0.78);
+    --danger: #ff9c8e;
+    --danger-hover: #ffb3a7;
+    --on-danger: #1e3533;
+    --success: #4ade80;
+    --income: #4ade80;
+    --expense: #ff9c8e;
+    --btn-secondary-bg: #2b4b47;
+    --btn-secondary-hover: #35564f;
+    --btn-edit-bg: #2b4b47;
+    --btn-edit-hover: #35564f;
+    --btn-delete-bg: #3a2b2b;
+    --btn-delete-hover: #4a3432;
+    --chart-border: #24413e;
+    --chart-text: #f4f5f5;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -44,6 +95,7 @@ body {
 .header h1 {
     margin: 0 0 16px;
     font-size: 1.75rem;
+    color: var(--heading);
 }
 
 .settings-row {
@@ -68,7 +120,7 @@ body {
     padding: 6px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #fff;
+    background: var(--field-bg);
     font-size: 0.9rem;
     color: var(--text);
     cursor: pointer;
@@ -118,14 +170,14 @@ body {
 .balance-total {
     background: var(--primary);
     border-color: var(--primary);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 .balance-total .label {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--on-primary-muted);
 }
 
-.balance-total .balance-amount { color: #fff; }
+.balance-total .balance-amount { color: var(--on-primary); }
 
 /* ---------- Sections ---------- */
 .add-transaction,
@@ -144,6 +196,7 @@ body {
 .chart-section h2 {
     margin: 0 0 16px;
     font-size: 1.25rem;
+    color: var(--heading);
 }
 
 .section-header {
@@ -176,7 +229,7 @@ body {
     padding: 6px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #fff;
+    background: var(--field-bg);
     font-size: 0.9rem;
     color: var(--text);
     cursor: pointer;
@@ -221,7 +274,7 @@ body {
     padding: 8px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #fff;
+    background: var(--field-bg);
     font-size: 1rem;
     color: var(--text);
     width: 100%;
@@ -253,7 +306,7 @@ body {
 
 .btn-primary {
     background: var(--primary);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 .btn-primary:hover {
@@ -261,17 +314,17 @@ body {
 }
 
 .btn-secondary {
-    background: #ecf0f1;
+    background: var(--btn-secondary-bg);
     color: var(--text);
 }
 
 .btn-secondary:hover {
-    background: #dfe4ea;
+    background: var(--btn-secondary-hover);
 }
 
 .btn-danger {
     background: var(--danger);
-    color: #fff;
+    color: var(--on-danger);
 }
 
 .btn-danger:hover {
@@ -285,21 +338,21 @@ body {
 }
 
 .btn-edit {
-    background: #eaf2fb;
+    background: var(--btn-edit-bg);
     color: var(--primary);
 }
 
 .btn-edit:hover {
-    background: #d6e6f8;
+    background: var(--btn-edit-hover);
 }
 
 .btn-delete {
-    background: #fdeeee;
+    background: var(--btn-delete-bg);
     color: var(--danger);
 }
 
 .btn-delete:hover {
-    background: #fadbd8;
+    background: var(--btn-delete-hover);
 }
 
 /* ---------- Message ---------- */
@@ -342,7 +395,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
-    background: #f8f9fb;
+    background: var(--row-hover);
 }
 
 .transactions-table tr:last-child td {
@@ -350,7 +403,7 @@ body {
 }
 
 .transactions-table tr:hover td {
-    background: #f8f9fb;
+    background: var(--row-hover);
 }
 
 .actions {
