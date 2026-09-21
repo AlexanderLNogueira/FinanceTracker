@@ -8,16 +8,20 @@ import {
   balance,
   filterByType,
   sortTransactions,
-  validateAndNormalizeStoredTransactions
+  normalizeTransactionInput,
+  validateAndNormalizeStoredTransactions,
+  validateTransactionInput
 } from './transactions.js';
 import { renderExpenseChart } from './chart.js';
 import { formatCurrency, formatDate } from './format.js';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, VALID_CURRENCIES, VALID_LOCALES, VALID_THEMES } from './settings.js';
+import { FIELD_BY_LABEL, toFieldErrors, labelsFromError } from './form-errors.js';
 import { applyTheme, THEME_LABELS } from './theme.js';
 import {
   TRANSACTION_TYPES,
   DEFAULT_FILTER,
-  DEFAULT_SORT_ORDER
+  DEFAULT_SORT_ORDER,
+  MIN_DATE_STRING
 } from './constants.js';
 
 // --- State: Plain module variables ---
@@ -44,6 +48,9 @@ const currencySelect = document.getElementById('currency-select');
 const localeSelect = document.getElementById('locale-select');
 const themeSelect = document.getElementById('theme-select');
 
+// Form fields that can surface a validation message, derived from the label > field map, so the two lists can never drift apart.
+const FIELD_IDS = Object.keys(FIELD_BY_LABEL);
+
 function getTodayDate() {
   const today = new Date();
   const y = today.getFullYear();
@@ -56,6 +63,7 @@ function getTodayDate() {
  * Native date input in sync with validateTransaction
  */
 function refreshDateConstraints() {
+  dateInput.min = MIN_DATE_STRING;
   dateInput.max = getTodayDate();
 }
 
@@ -73,6 +81,54 @@ function showMessage(text, type = 'success') {
     messageArea.textContent = '';
     messageArea.className = 'message';
   }, 3000);
+}
+
+// --- Field-level validation messages ---
+function fieldErrorElement(field) {
+  return document.getElementById(`${field}-error`);
+}
+
+function clearFieldError(field) {
+  const input = document.getElementById(field);
+  const errorElement = fieldErrorElement(field);
+
+  if (input) input.removeAttribute('aria-invalid');
+  if (errorElement) {
+    errorElement.textContent = '';
+    errorElement.hidden = true;
+  }
+}
+
+function clearFieldErrors() {
+  FIELD_IDS.forEach((field) => clearFieldError(field));
+}
+
+/**
+ * Paint messages returned by validateTransaction next to their fields.
+ * Flag the inputs for assistive tech, and focus first invalid.
+ * @param {string[]} labels error labels such as 'Description'
+ */
+function renderFieldErrors(labels) {
+  const fieldErrors = toFieldErrors(labels);
+  clearFieldErrors();
+
+  let firstInvalid = null;
+
+  Object.entries(fieldErrors).forEach(([field, message]) => {
+    const input = document.getElementById(field);
+    const errorElement = fieldErrorElement(field);
+
+    if (input) {
+      input.setAttribute('aria-invalid', 'true');
+      if (!firstInvalid) firstInvalid = input;
+    }
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.hidden = false;
+    }
+  });
+
+  if (firstInvalid) firstInvalid.focus();
 }
 
 // --- Rendering ---
@@ -169,20 +225,39 @@ function renderList() {
 }
 
 // --- Form actions ---
-function handleSubmit(e) {
-  e.preventDefault();
-
-  const input = {
+function readFormInput() {
+  return {
     description: descriptionInput.value,
     amount: amountInput.value,
     category: categoryInput.value,
     date: dateInput.value,
     type: typeSelect.value
   };
+}
+
+function handleSubmit(e) {
+  e.preventDefault();
+
+  const input = readFormInput();
+
+  // Single validation: the form is novalidate, so every rule is checked and reported next to the field it belongs to.
+  const { valid, errors } = validateTransactionInput(input);
+  if (!valid) {
+    renderFieldErrors(errors);
+    showMessage('Please fix the highlighted fields.', 'error');
+    return;
+  }
+
+  clearFieldErrors();
 
   try {
     if (editingId) {
-      const { nextTransactions, updated } = updateTransactionInList(transactions, editingId, input);
+      // updateTransactionInList takes a normalized patch (amount in cents), so cross the form -> stored boundary explicitly.
+      const { nextTransactions, updated } = updateTransactionInList(
+        transactions,
+        editingId,
+        normalizeTransactionInput(input)
+      );
       if (!updated) {
         showMessage('Transaction not found.', 'error');
         return;
@@ -200,7 +275,15 @@ function handleSubmit(e) {
       dateInput.value = getTodayDate();
     }
   } catch (error) {
-    showMessage(error.message, 'error');
+    // createTransaction / updateTransactionInList are the domain guard.
+    // Map their labels back to fields when possible.
+    const labels = labelsFromError(error);
+    if (Object.keys(toFieldErrors(labels)).length > 0) {
+      renderFieldErrors(labels);
+      showMessage('Please fix the highlighted fields.', 'error');
+    } else {
+      showMessage(error.message, 'error');
+    }
     return;
   }
 
@@ -211,6 +294,7 @@ function handleEdit(id) {
   const transaction = transactions.find(t => String(t.id) === String(id));
   if (!transaction) return;
 
+  clearFieldErrors();
   editingId = transaction.id;
   descriptionInput.value = transaction.description;
   amountInput.value = Math.abs(transaction.amount) / 100;
@@ -229,6 +313,7 @@ function exitEditMode() {
   editingId = null;
   submitBtn.textContent = 'Add Transaction';
   cancelEditBtn.hidden = true;
+  clearFieldErrors();
   form.reset();
   dateInput.value = getTodayDate();
 }
@@ -340,6 +425,15 @@ function init() {
 
   form.addEventListener('submit', handleSubmit);
   cancelEditBtn.addEventListener('click', exitEditMode);
+
+  // Clear field error as soon as the user edits it.
+  FIELD_IDS.forEach((field) => {
+    const input = document.getElementById(field);
+    if (!input) return;
+    input.addEventListener('input', () => clearFieldError(field));
+    input.addEventListener('change', () => clearFieldError(field));
+  });
+
   filterSelect.addEventListener('change', (e) => {
     currentFilter = e.target.value;
     render();

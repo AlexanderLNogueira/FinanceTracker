@@ -28,6 +28,9 @@ export const DEFAULT_CATEGORY = 'Uncategorized';
 export const DEFAULT_FILTER = TYPE_FILTERS.ALL;
 export const DEFAULT_SORT_ORDER = SORT_ORDERS.DATE_NEWEST;
 
+// Earliest date accepted by validation
+export const MIN_DATE_STRING = '2000-01-01';
+
 export const VALID_TRANSACTION_TYPES = Object.freeze(Object.values(TRANSACTION_TYPES));
 export const VALID_TYPE_FILTERS = Object.freeze(Object.values(TYPE_FILTERS));
 export const VALID_SORT_ORDERS = Object.freeze(Object.values(SORT_ORDERS));

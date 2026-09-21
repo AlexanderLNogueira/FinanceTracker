@@ -10,13 +10,13 @@ import {
   DEFAULT_CATEGORY,
   DEFAULT_FILTER,
   DEFAULT_SORT_ORDER,
+  MIN_DATE_STRING,
   VALID_TYPE_FILTERS,
   VALID_SORT_ORDERS,
 } from './constants.js';
 
 const DESCRIPTION_MAX_LEN = 100;
 const CATEGORY_MAX_LEN = 50;
-const MIN_DATE = new Date(2000, 0, 1); // Earliest allowed date
 
 function generateId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -79,6 +79,9 @@ export function parseDateYMD(dateStr) {
   return date;
 }
 
+// Earliest allowed date.
+const MIN_DATE = parseDateYMD(MIN_DATE_STRING);
+
 /**
  * Validate transaction fields.
  * Amount must be a non-zero integer (amounts are stored in cents);
@@ -132,19 +135,42 @@ function normalizeAmount(amount, type) {
 }
 
 /**
- * Create a new transaction from raw input.
+ * Convert raw form input into stored transaction shape (without an id).
+ * Single boundary where form units become stored units: `amount` is parsed from currency units (e.g. '19.99') into signed integer cents.
+ * Used by createTransaction, validateTransactionInput.
+ * @param {Object} input
+ * @returns {{description: string, amount: number, category: string, date: string, type: string}}
+ */
+export function normalizeTransactionInput(input) {
+  const source = input || {};
+  const type = source.type == null ? '' : String(source.type);
+
+  return {
+    description: String(source.description || '').trim(),
+    amount: normalizeAmount(parseAmountToCents(source.amount), type),
+    category: normalizeCategory(String(source.category || '')),
+    date: String(source.date || '').trim(),
+    type
+  };
+}
+
+/**
+ * Validate raw form input without throwing, so the UI can render per-field errors.
+ * Reports the same error labels as validateTransaction.
+ * @param {Object} input
+ * @returns {{valid: boolean, errors: string[]}}
+ */
+export function validateTransactionInput(input) {
+  return validateTransaction(normalizeTransactionInput(input));
+}
+
+/**
+ * Create a new transaction from raw form input.
  * @param {Object} input
  * @returns {Object}
  */
 export function createTransaction(input) {
-  const type = input.type == null ? '' : String(input.type);
-  const transaction = {
-    description: String(input.description || '').trim(),
-    amount: normalizeAmount(parseAmountToCents(input.amount), type),
-    category: normalizeCategory(String(input.category || '')),
-    date: String(input.date || '').trim(),
-    type
-  };
+  const transaction = normalizeTransactionInput(input);
 
   const { valid, errors } = validateTransaction(transaction);
   if (!valid) {
@@ -184,30 +210,31 @@ export function validateAndNormalizeStoredTransactions(storedTransactions) {
     .filter(t => t.id && validateTransaction(t).valid);
 }
 
+// Fields a patch may change; `id` is never editable.
+const UPDATABLE_FIELDS = ['description', 'amount', 'category', 'date', 'type'];
+
 /**
  * Update an existing transaction in the list.
  * @param {Object[]} transactions
  * @param {string} id
- * @param {Object} updates
+ * @param {Object} updates normalized patch
  * @returns {{nextTransactions: Object[], updated: Object|null}}
  */
-export function updateTransactionInList(transactions, id, updates) {
+export function updateTransactionInList(transactions, id, updates = {}) {
   const index = transactions.findIndex(t => String(t.id) === String(id));
   if (index === -1) {
     return { nextTransactions: transactions, updated: null };
   }
 
-  const updated = { ...transactions[index], ...updates };
+  const updated = { ...transactions[index] };
+  // null/undefined == "no changes".
+  const patch = updates || {};
 
-  if (typeof updated.description === 'string') {
-    updated.description = updated.description.trim();
-  }
-  if (typeof updated.category === 'string') {
-    updated.category = normalizeCategory(updated.category);
-  }
-  if (updated.amount !== undefined) {
-    updated.amount = normalizeAmount(parseAmountToCents(updated.amount), updated.type);
-  }
+  UPDATABLE_FIELDS.forEach((field) => {
+    if (Object.hasOwn(patch, field)) {
+      updated[field] = patch[field];
+    }
+  });
 
   const { valid, errors } = validateTransaction(updated);
   if (!valid) {
