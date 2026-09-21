@@ -293,6 +293,30 @@ body {
     flex-wrap: wrap;
 }
 
+/* ---------- Field-level validation ---------- */
+.field-error {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.field-error[hidden] {
+    display: none;
+}
+
+.form-group input[aria-invalid='true'],
+.form-group select[aria-invalid='true'] {
+    border-color: var(--danger);
+}
+
+.form-group input[aria-invalid='true']:focus,
+.form-group select[aria-invalid='true']:focus {
+    outline: 2px solid var(--danger);
+    outline-offset: -1px;
+    border-color: var(--danger);
+}
+
 /* ---------- Buttons ---------- */
 .btn {
     padding: 9px 18px;
@@ -439,6 +463,10 @@ body {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 600px) {
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
     .form-row {
         flex-direction: column;
         gap: 16px;

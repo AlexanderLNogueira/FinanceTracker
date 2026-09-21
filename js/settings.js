@@ -9,8 +9,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
   theme: 'light',
 });
 
-// Currency and locale options for the settings UI.
-export const VALID_CURRENCIES = Object.freeze(['USD', 'EUR', 'GBP', 'BRL', 'JPY', 'CAD', 'AUD', 'CHF']);
+// Currency, locale and theme options for the settings UI.
+// Zero-decimal currencies (e.g. JPY) are intentionally excluded.
+export const VALID_CURRENCIES = Object.freeze(['USD', 'EUR', 'GBP', 'BRL', 'CAD', 'AUD', 'CHF']);
 export const VALID_LOCALES = Object.freeze(['en-US', 'pt-BR', 'de-DE', 'fr-FR', 'es-ES', 'it-IT', 'ja-JP', 'en-GB']);
 export const VALID_THEMES = Object.freeze(['light', 'dark']);
 
@@ -27,11 +28,17 @@ function isValidValue(value, validValues) {
 }
 
 /**
- * Load user settings, merging per-field defaults over whatever is persisted. Corrupt or partial falls back.
+ * Load user settings, merging per-field defaults over whatever is persisted. Corrupt, unreadable or partial falls back.
  * @returns {{currency: string, locale: string, theme: string}}
  */
 export function loadSettings() {
-  const stored = safeParse(localStorage.getItem(SETTINGS_KEY));
+  let stored = null;
+  try {
+    stored = safeParse(localStorage.getItem(SETTINGS_KEY));
+  } catch (error) {
+    // Storage can be unavailable (private mode, blocked cookies); fall back to defaults.
+    console.error('Failed to read settings from localStorage:', error);
+  }
   if (!stored || typeof stored !== 'object') return { ...DEFAULT_SETTINGS };
 
   return {
@@ -46,9 +53,13 @@ export function loadSettings() {
  * @param {{currency: string, locale: string, theme: string}} settings
  */
 export function saveSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-    currency: settings.currency,
-    locale: settings.locale,
-    theme: settings.theme,
-  }));
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      currency: settings.currency,
+      locale: settings.locale,
+      theme: settings.theme,
+    }));
+  } catch (error) {
+    console.error('Failed to save settings to localStorage:', error);
+  }
 }
