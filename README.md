@@ -13,8 +13,10 @@ charts. No backend, no sign-up, and no data ever leaves your browser.
 - Add, edit, and delete income/expense transactions with categories and dates
 - Live summary: total income, total expenses, and balance
 - Filter by type and sort by date, amount, or description
-- Expenses-by-category doughnut chart (Chart.js)
-- Currency and locale display settings (8 currencies, 8 locales)
+- Expenses-by-category doughnut chart (Chart.js), themed with the app
+- Light and dark themes via display settings (persistent)
+- Inline per-field form validation with accessible error messages
+- Currency and locale display settings (7 currencies, 8 locales)
 - Everything persists in `localStorage` - works offline
 
 ## Tech Stack
