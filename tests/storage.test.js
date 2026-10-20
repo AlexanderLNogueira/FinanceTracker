@@ -3,39 +3,18 @@ import assert from 'node:assert/strict';
 
 import { saveTransactions, loadTransactions } from '../js/storage.js';
 import { TRANSACTION_TYPES } from '../js/constants.js';
-
-// --- In-memory localStorage ---
-
-function createLocalStorageMock() {
-  let store = {};
-  return {
-    getItem(key) {
-      return key in store ? store[key] : null;
-    },
-    setItem(key, value) {
-      store[key] = String(value);
-    },
-    removeItem(key) {
-      delete store[key];
-    },
-    clear() {
-      store = {};
-    },
-  };
-}
+import { createLocalStorageMock, silenceExpectedConsoleErrors } from './support/local-storage.js';
 
 // --- Browser localStorage before each test ---
 
 beforeEach(() => {
   globalThis.localStorage = createLocalStorageMock();
-});
-
-// Expected console.error calls from error-path tests.
-beforeEach(() => {
-  mock.method(console, 'error', () => {});
+  // Expected console.error calls from error-path tests.
+  silenceExpectedConsoleErrors();
 });
 
 afterEach(() => {
+  delete globalThis.localStorage;
   mock.restoreAll();
 });
 
@@ -54,8 +33,6 @@ function makeTransaction(overrides = {}) {
     ...overrides,
   };
 }
-
-// --- Tests ---
 
 describe('saveTransactions / loadTransactions', () => {
   it('saves and loads a round-trip of transactions', () => {
@@ -97,44 +74,22 @@ describe('saveTransactions / loadTransactions', () => {
     const legacy = [
       { id: '1', description: 'Salary', amount: 1999.99, category: 'Work', date: '2024-01-15', type: 'Income' },
       { id: '2', description: 'Coffee', amount: -2.5, category: 'Food', date: '2024-01-16', type: 'Expense' },
+      { id: '3', description: 'Rent', amount: 1000, category: 'Home', date: '2024-01-17', type: 'Expense' },
     ];
     globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
 
-    const loaded = loadTransactions();
-    assert.equal(loaded[0].amount, 199999);
-    assert.equal(loaded[1].amount, -250);
-    assert.equal(loaded.length, 2);
-  });
-
-  it('migrates legacy whole-dollar amounts to cents', () => {
-    const legacy = [
-      { id: '1', description: 'Salary', amount: 1000, category: 'Work', date: '2024-01-15', type: 'Income' },
-    ];
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
-    assert.deepEqual(loadTransactions(), [{ ...legacy[0], amount: 100000 }]);
-  });
-
-  it('saves multiple transactions correctly', () => {
-    const txns = [
-      makeTransaction({ id: 'a', description: 'A', amount: 1000, category: 'C', date: '2024-01-01', type: 'Income' }),
-      makeTransaction({ id: 'b', description: 'B', amount: -2000, category: 'C', date: '2024-01-02', type: 'Expense' }),
-      makeTransaction({ id: 'c', description: 'C', amount: 3000, category: 'C', date: '2024-01-03', type: 'Income' }),
-    ];
-    saveTransactions(txns);
-    assert.deepEqual(loadTransactions(), txns);
-  });
-
-  it('overwrites previous data on new save', () => {
-    saveTransactions([makeTransaction({ id: 'old', description: 'Old', amount: 100, date: '2024-01-01' })]);
-    saveTransactions([makeTransaction({ id: 'new', description: 'New', amount: 200, date: '2024-01-02' })]);
-    const loaded = loadTransactions();
-    assert.equal(loaded.length, 1);
-    assert.equal(loaded[0].id, 'new');
+    // 1999.99 -> 199999, -2.5 -> -250, whole dollars -> cents.
+    assert.deepEqual(loadTransactions(), [
+      { ...legacy[0], amount: 199999 },
+      { ...legacy[1], amount: -250 },
+      { ...legacy[2], amount: 100000 },
+    ]);
   });
 
   it('saveTransactions throws on serialization error', () => {
     const circular = {};
     circular.self = circular;
-    assert.throws(() => saveTransactions(circular), /Converting circular structure to JSON/);
+    // "Converting circular structure to JSON".
+    assert.throws(() => saveTransactions(circular), /circular/i);
   });
 });

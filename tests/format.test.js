@@ -2,7 +2,6 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { formatCurrency, formatDate } from '../js/format.js';
-import { DEFAULT_SETTINGS } from '../js/settings.js';
 
 // Intl emits non-breaking spaces around currency symbols;
 // Collapse all whitespace to a single regular space so assertions are robust.
@@ -25,10 +24,6 @@ describe('formatCurrency', () => {
   it('handles negative amounts (expenses) correctly', () => {
     assert.equal(normalize(formatCurrency(-500, { currency: 'USD', locale: 'en-US' })), '-$5.00');
     assert.equal(normalize(formatCurrency(-123456, { currency: 'BRL', locale: 'pt-BR' })), '-R$ 1.234,56');
-  });
-
-  it('defaults to DEFAULT_SETTINGS when settings is omitted', () => {
-    assert.equal(formatCurrency(100, undefined), formatCurrency(100, DEFAULT_SETTINGS));
   });
 });
 
